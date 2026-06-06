@@ -16,6 +16,8 @@ export default function Matches() {
   const [editTeamB, setEditTeamB] = useState([]);
   const [editScoreA, setEditScoreA] = useState('');
   const [editScoreB, setEditScoreB] = useState('');
+  const [editTeamAName, setEditTeamAName] = useState('');
+  const [editTeamBName, setEditTeamBName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -42,6 +44,8 @@ export default function Matches() {
     setEditingMatch(match);
     setEditScoreA(match.team_a_score);
     setEditScoreB(match.team_b_score);
+    setEditTeamAName(match.team_a_name || 'Team A');
+    setEditTeamBName(match.team_b_name || 'Team B');
     setEditTeamA(match.players?.filter(p => p.team === 'A') || []);
     setEditTeamB(match.players?.filter(p => p.team === 'B') || []);
   };
@@ -81,6 +85,8 @@ export default function Matches() {
       await api.put(`/admin/matches/${editingMatch.match_id}`, {
         team_a_score: parseInt(editScoreA),
         team_b_score: parseInt(editScoreB),
+        team_a_name: editTeamAName,
+        team_b_name: editTeamBName,
         team_a_players: editTeamA.map(p => p.player_id),
         team_b_players: editTeamB.map(p => p.player_id)
       }, {
@@ -257,7 +263,13 @@ export default function Matches() {
               {/* Team A Edit */}
               <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-lg">{editingMatch.team_a_name || 'Team A'}</h3>
+                  <input 
+                    type="text" 
+                    value={editTeamAName}
+                    onChange={(e) => setEditTeamAName(e.target.value)}
+                    className="font-bold text-lg bg-transparent border-b border-transparent hover:border-white/20 focus:border-primary outline-none transition-colors w-2/3"
+                    placeholder="Team A Name"
+                  />
                   <input 
                     type="number" 
                     min="0"
@@ -283,7 +295,13 @@ export default function Matches() {
               {/* Team B Edit */}
               <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-lg">{editingMatch.team_b_name || 'Team B'}</h3>
+                  <input 
+                    type="text" 
+                    value={editTeamBName}
+                    onChange={(e) => setEditTeamBName(e.target.value)}
+                    className="font-bold text-lg bg-transparent border-b border-transparent hover:border-white/20 focus:border-primary outline-none transition-colors w-2/3"
+                    placeholder="Team B Name"
+                  />
                   <input 
                     type="number" 
                     min="0"

@@ -384,7 +384,7 @@ app.post('/api/matches', authMiddleware, async (req, res) => {
 // --- Admin Match Editing ---
 app.put('/api/admin/matches/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { team_a_score, team_b_score, team_a_players, team_b_players } = req.body;
+  const { team_a_score, team_b_score, team_a_players, team_b_players, team_a_name, team_b_name } = req.body;
   
   if (team_a_score == null || team_b_score == null || !team_a_players || !team_b_players) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -399,10 +399,10 @@ app.put('/api/admin/matches/:id', authMiddleware, async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // Update match scores and winner
+    // Update match scores, winner, and team names
     await client.query(
-      `UPDATE matches SET team_a_score = $1, team_b_score = $2, winning_team = $3 WHERE match_id = $4`,
-      [team_a_score, team_b_score, winning_team, id]
+      `UPDATE matches SET team_a_score = $1, team_b_score = $2, winning_team = $3, team_a_name = $4, team_b_name = $5 WHERE match_id = $6`,
+      [team_a_score, team_b_score, winning_team, team_a_name || 'Team A', team_b_name || 'Team B', id]
     );
 
     // Delete old match players
