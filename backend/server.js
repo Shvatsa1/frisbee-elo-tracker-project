@@ -3,10 +3,35 @@ import cors from 'cors';
 import { pool } from './db.js';
 import { processMatch, calculateExpectedScore, getKFactor } from './eloService.js';
 import { updatePlayerStatsCache } from './statsService.js';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_fallback_key';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+};
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// --- Auth ---
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body;
+  if (password === ADMIN_PASSWORD) {
+    const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+    return res.json({ token });
+  }
+  return res.status(401).json({ error: 'Invalid password' });
+});
 
 // --- Dashboard Stats ---
 app.get('/api/dashboard', async (req, res) => {
@@ -144,16 +169,57 @@ app.get('/api/players/:id', async (req, res) => {
     if (playerResult.rows.length === 0) return res.status(404).json({ error: 'Player not found' });
     
     const historyResult = await pool.query(`
-      SELECT mp.*, m.match_date, m.location, m.team_a_score, m.team_b_score, m.winning_team
+      SELECT 
+        m.match_id, mp.team as player_team, mp.elo_before, mp.elo_after, mp.elo_change,
+        m.match_date, m.location, m.team_a_score, m.team_b_score, m.winning_team,
+        m.team_a_name, m.team_b_name,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'player_id', p.player_id, 
+              'player_name', p.player_name, 
+              'team', mp_all.team
+            )
+          ) FILTER (WHERE p.player_id IS NOT NULL), '[]'
+        ) as players
       FROM match_players mp
       JOIN matches m ON mp.match_id = m.match_id
+      LEFT JOIN match_players mp_all ON m.match_id = mp_all.match_id
+      LEFT JOIN players p ON mp_all.player_id = p.player_id
       WHERE mp.player_id = $1
-      ORDER BY m.match_date DESC, mp.created_at DESC
+      GROUP BY m.match_id, mp.team, mp.elo_before, mp.elo_after, mp.elo_change, m.created_at
+      ORDER BY m.match_date DESC, m.created_at DESC
+    `, [id]);
+    
+    const bestAllyResult = await pool.query(`
+      SELECT p.player_name, count(*) as wins
+      FROM match_players mp1
+      JOIN match_players mp2 ON mp1.match_id = mp2.match_id AND mp1.team = mp2.team AND mp1.player_id != mp2.player_id
+      JOIN matches m ON mp1.match_id = m.match_id
+      JOIN players p ON mp2.player_id = p.player_id
+      WHERE mp1.player_id = $1 AND m.winning_team = mp1.team
+      GROUP BY p.player_name
+      ORDER BY wins DESC
+      LIMIT 1
+    `, [id]);
+    
+    const nemesisResult = await pool.query(`
+      SELECT p.player_name, count(*) as losses
+      FROM match_players mp1
+      JOIN match_players mp2 ON mp1.match_id = mp2.match_id AND mp1.team != mp2.team
+      JOIN matches m ON mp1.match_id = m.match_id
+      JOIN players p ON mp2.player_id = p.player_id
+      WHERE mp1.player_id = $1 AND m.winning_team != mp1.team AND m.winning_team != 'Draw'
+      GROUP BY p.player_name
+      ORDER BY losses DESC
+      LIMIT 1
     `, [id]);
     
     res.json({
       player: playerResult.rows[0],
-      history: historyResult.rows
+      history: historyResult.rows,
+      bestAlly: bestAllyResult.rows[0] || null,
+      nemesis: nemesisResult.rows[0] || null
     });
   } catch (err) {
     console.error(err);
@@ -161,7 +227,7 @@ app.get('/api/players/:id', async (req, res) => {
   }
 });
 
-app.post('/api/players', async (req, res) => {
+app.post('/api/players', authMiddleware, async (req, res) => {
   const { player_name } = req.body;
   if (!player_name) return res.status(400).json({ error: 'player_name is required' });
   try {
@@ -209,7 +275,7 @@ app.get('/api/matches', async (req, res) => {
   }
 });
 
-app.post('/api/matches', async (req, res) => {
+app.post('/api/matches', authMiddleware, async (req, res) => {
   const { match_date, location, team_a_score, team_b_score, team_a_players, team_b_players, team_a_name, team_b_name } = req.body;
   
   if (!match_date || team_a_score == null || team_b_score == null || !team_a_players || !team_b_players) {
@@ -315,8 +381,66 @@ app.post('/api/matches', async (req, res) => {
   }
 });
 
+// --- Admin Match Editing ---
+app.put('/api/admin/matches/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { team_a_score, team_b_score, team_a_players, team_b_players } = req.body;
+  
+  if (team_a_score == null || team_b_score == null || !team_a_players || !team_b_players) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const winning_team = team_a_score > team_b_score ? 'A' : (team_b_score > team_a_score ? 'B' : 'Draw');
+  if (winning_team === 'Draw') {
+    return res.status(400).json({ error: 'Draws are not supported in this MVP' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Update match scores and winner
+    await client.query(
+      `UPDATE matches SET team_a_score = $1, team_b_score = $2, winning_team = $3 WHERE match_id = $4`,
+      [team_a_score, team_b_score, winning_team, id]
+    );
+
+    // Delete old match players
+    await client.query('DELETE FROM match_players WHERE match_id = $1', [id]);
+
+    // Insert new match players (elo_before/after will be overwritten by the recalculate engine)
+    for (const pId of team_a_players) {
+      await client.query(
+        'INSERT INTO match_players (match_id, player_id, team, elo_before, elo_after, elo_change) VALUES ($1, $2, $3, 0, 0, 0)',
+        [id, pId, 'A']
+      );
+    }
+    for (const pId of team_b_players) {
+      await client.query(
+        'INSERT INTO match_players (match_id, player_id, team, elo_before, elo_after, elo_change) VALUES ($1, $2, $3, 0, 0, 0)',
+        [id, pId, 'B']
+      );
+    }
+
+    // Log the manual edit in the activity feed
+    await client.query(
+      `INSERT INTO activity_feed (event_type, match_id, description, meta_data) VALUES ($1, $2, $3, $4)`,
+      ['ADMIN_EDIT', id, `Match #${id} was edited by an admin. Elo recalculation required.`, JSON.stringify({})]
+    );
+
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
 // --- Admin / Recalculation Engine ---
-app.post('/api/admin/recalculate', async (req, res) => {
+app.post('/api/admin/recalculate', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

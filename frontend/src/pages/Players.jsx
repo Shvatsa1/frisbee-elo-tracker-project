@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Players() {
   const [players, setPlayers] = useState([]);
@@ -8,6 +9,7 @@ export default function Players() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const { isAuthenticated } = useAuth();
 
   const fetchPlayers = () => {
     api.get('/players')
@@ -45,23 +47,25 @@ export default function Players() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Leaderboard</h1>
-        <form onSubmit={handleAddPlayer} className="flex gap-2 w-full md:w-auto">
-          <input 
-            type="text" 
-            placeholder="New Player Name" 
-            className="input-field max-w-[200px]"
-            value={newPlayerName}
-            onChange={(e) => setNewPlayerName(e.target.value)}
-            disabled={isSubmitting}
-          />
-          <button 
-            type="submit" 
-            className="btn-primary whitespace-nowrap"
-            disabled={isSubmitting || !newPlayerName.trim()}
-          >
-            {isSubmitting ? 'Adding...' : 'Add Player'}
-          </button>
-        </form>
+        {isAuthenticated && (
+          <form onSubmit={handleAddPlayer} className="flex gap-2 w-full md:w-auto">
+            <input 
+              type="text" 
+              placeholder="New Player Name" 
+              className="input-field max-w-[200px]"
+              value={newPlayerName}
+              onChange={(e) => setNewPlayerName(e.target.value)}
+              disabled={isSubmitting}
+            />
+            <button 
+              type="submit" 
+              className="btn-primary whitespace-nowrap"
+              disabled={isSubmitting || !newPlayerName.trim()}
+            >
+              {isSubmitting ? 'Adding...' : 'Add Player'}
+            </button>
+          </form>
+        )}
       </div>
       {error && <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-lg">{error}</div>}
 
@@ -92,7 +96,7 @@ export default function Players() {
                         index === 0 ? 'bg-amber-500/20 text-amber-500' :
                         index === 1 ? 'bg-slate-300/20 text-slate-300' :
                         index === 2 ? 'bg-amber-700/20 text-amber-600' :
-                        'text-slate-500'
+                        'text-slate-400'
                       }`}>
                         {index + 1}
                       </span>
@@ -122,11 +126,11 @@ export default function Players() {
                       ) : player.streak < 0 ? (
                         <span className="text-red-500 font-medium">{Math.abs(player.streak)} L</span>
                       ) : (
-                        <span className="text-slate-500">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </td>
                     <td className="p-4 text-slate-300">
-                      {player.total_games} <span className="text-xs text-slate-500">({player.wins}W - {player.losses}L)</span>
+                      {player.total_games} <span className="text-xs text-slate-400">({player.wins}W - {player.losses}L)</span>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center space-x-2">
@@ -155,7 +159,7 @@ export default function Players() {
                     index === 0 ? 'bg-amber-500/20 text-amber-500' :
                     index === 1 ? 'bg-slate-300/20 text-slate-300' :
                     index === 2 ? 'bg-amber-700/20 text-amber-600' :
-                    'text-slate-500'
+                    'text-slate-400'
                   }`}>
                     {index + 1}
                   </span>

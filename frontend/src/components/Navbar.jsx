@@ -1,22 +1,29 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Users, LayoutDashboard, PlusCircle, History, Wand2, Menu, X, CalendarCheck } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, PlusCircle, History, Wand2, Menu, X, CalendarCheck, Lock, Unlock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAuthenticated, logout } = useAuth();
   
-  const navItems = [
+  const publicItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/players', label: 'Players', icon: Users },
-    { path: '/gameday', label: 'Gameday Wizard', icon: CalendarCheck },
-    { path: '/team-builder', label: 'Team Builder', icon: Wand2 },
     { path: '/matches', label: 'Matches', icon: History },
-    { path: '/matches/new', label: 'New Match', icon: PlusCircle },
   ];
 
+  const adminItems = [
+    { path: '/gameday', label: 'Gameday', icon: CalendarCheck },
+    { path: '/team-builder', label: 'Team Builder', icon: Wand2 },
+    { path: '/matches/new', label: 'Manual Match', icon: PlusCircle },
+  ];
+
+  const navItems = isAuthenticated ? [...publicItems, ...adminItems] : publicItems;
+
   return (
-    <nav className="bg-surface/90 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
+    <nav className="bg-surface/90 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -45,6 +52,24 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            
+            {isAuthenticated ? (
+              <button 
+                onClick={logout}
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors ml-4"
+              >
+                <Unlock className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <Link 
+                to="/login"
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors ml-4"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Admin</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -59,7 +84,7 @@ export default function Navbar() {
 
       {/* Mobile Nav Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 w-full bg-surface/95 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden absolute top-16 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-2 duration-200">
           <div className="px-4 pt-2 pb-6 space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -80,6 +105,25 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {isAuthenticated ? (
+              <button 
+                onClick={() => { logout(); setMobileMenuOpen(false); }}
+                className="flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium text-red-400 hover:bg-red-400/10 transition-colors w-full text-left"
+              >
+                <Unlock className="w-5 h-5" />
+                <span>Logout Admin</span>
+              </button>
+            ) : (
+              <Link 
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <Lock className="w-5 h-5" />
+                <span>Admin Login</span>
+              </Link>
+            )}
           </div>
         </div>
       )}

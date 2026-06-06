@@ -165,7 +165,7 @@ export default function TeamBuilder() {
                   const avgElo = team.length > 0 ? generatedTeams.teamElos[idx] / team.length : 0;
                   return (
                     <div key={idx} className="bg-white/5 rounded-xl border border-white/10 p-4">
-                      <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+                      <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                         <h3 className="font-bold text-lg text-secondary">Team {String.fromCharCode(65 + idx)}</h3>
                         <div className="text-sm text-slate-400">
                           Avg Elo: <span className="font-bold text-white">{Math.round(avgElo)}</span>
@@ -175,7 +175,7 @@ export default function TeamBuilder() {
                         {team.map(p => (
                           <div key={p.player_id} className="flex justify-between items-center text-sm">
                             <span>{p.player_name}</span>
-                            <span className="text-slate-500">{Math.round(p.current_elo)}</span>
+                            <span className="text-slate-400">{Math.round(p.current_elo)}</span>
                           </div>
                         ))}
                       </div>

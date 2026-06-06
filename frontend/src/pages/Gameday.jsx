@@ -224,9 +224,9 @@ export default function Gameday() {
         
         {/* Progress Indicator */}
         <div className="flex space-x-2 mt-4 md:mt-0">
-          <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${step === 0 ? 'bg-primary text-white' : 'bg-white/5 text-slate-500'}`}>1. Roster</div>
-          <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${step === 1 ? 'bg-primary text-white' : 'bg-white/5 text-slate-500'}`}>2. Draft</div>
-          <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${step === 2 ? 'bg-primary text-white' : 'bg-white/5 text-slate-500'}`}>3. Matches</div>
+          <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${step === 0 ? 'bg-primary text-white' : 'bg-white/5 text-slate-400'}`}>1. Roster</div>
+          <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${step === 1 ? 'bg-primary text-white' : 'bg-white/5 text-slate-400'}`}>2. Draft</div>
+          <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${step === 2 ? 'bg-primary text-white' : 'bg-white/5 text-slate-400'}`}>3. Matches</div>
         </div>
       </div>
 
@@ -259,7 +259,7 @@ export default function Gameday() {
                     />
                     <div className="flex-grow flex justify-between items-center">
                       <span className={`font-medium ${isSelected ? 'text-white' : 'text-slate-300'}`}>{p.player_name}</span>
-                      <span className="text-xs text-slate-500">{Math.round(p.current_elo)}</span>
+                      <span className="text-xs text-slate-400">{Math.round(p.current_elo)}</span>
                     </div>
                   </label>
                 );
@@ -315,7 +315,7 @@ export default function Gameday() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {teams.map((team, idx) => (
               <div key={idx} className="glass-panel p-0 overflow-hidden flex flex-col">
-                <div className="bg-black/30 p-4 border-b border-white/5 flex justify-between items-center">
+                <div className="bg-white/5 p-4 border-b border-white/10 flex justify-between items-center">
                   <input
                     type="text"
                     value={team.name}
@@ -343,7 +343,7 @@ export default function Gameday() {
                     </div>
                   ))}
                 </div>
-                <div className="bg-black/20 p-2 text-center text-xs text-slate-500 font-medium border-t border-white/5">
+                <div className="bg-white/10 p-2 text-center text-xs text-slate-400 font-medium border-t border-white/10">
                   {team.players.length} Players
                 </div>
               </div>
@@ -375,7 +375,7 @@ export default function Gameday() {
                 <div key={match.id} className={`glass-panel p-6 border-l-4 transition-all ${isSubmitted ? 'border-l-secondary bg-secondary/5' : 'border-l-primary hover:border-l-blue-400'}`}>
                   
                   <div className="flex justify-between items-center mb-6">
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">Match #{match.id}</span>
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">Match #{match.id}</span>
                     {isSubmitted ? (
                        <span className="flex items-center text-secondary text-xs font-bold uppercase tracking-wider bg-secondary/10 px-2 py-1 rounded">
                          <CheckCircle className="w-3 h-3 mr-1" /> Logged
@@ -391,7 +391,7 @@ export default function Gameday() {
                     {/* Team A */}
                     <div className="flex-1 text-center">
                       <div className="font-black text-xl mb-1">{teamA.name}</div>
-                      <div className="text-xs text-slate-500 mb-3">Avg: {Math.round(teamA.avgElo)}</div>
+                      <div className="text-xs text-slate-400 mb-3">Avg: {Math.round(teamA.avgElo)}</div>
                       <input 
                         type="number" 
                         min="0"
@@ -410,7 +410,7 @@ export default function Gameday() {
                     {/* Team B */}
                     <div className="flex-1 text-center">
                       <div className="font-black text-xl mb-1">{teamB.name}</div>
-                      <div className="text-xs text-slate-500 mb-3">Avg: {Math.round(teamB.avgElo)}</div>
+                      <div className="text-xs text-slate-400 mb-3">Avg: {Math.round(teamB.avgElo)}</div>
                       <input 
                         type="number" 
                         min="0"
