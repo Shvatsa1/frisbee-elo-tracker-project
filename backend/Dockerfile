@@ -4,7 +4,10 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+# Production image: skip devDependencies. The test harness pulls
+# @embedded-postgres/windows-x64 (Windows-only) which cannot install on Linux,
+# and is not needed at runtime — the server connects to a real Postgres.
+RUN npm install --omit=dev
 
 COPY . .
 
