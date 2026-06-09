@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import Players from './pages/Players';
@@ -8,6 +8,18 @@ import MatchCreation from './pages/MatchCreation';
 import TeamBuilder from './pages/TeamBuilder';
 import Gameday from './pages/Gameday';
 
+// v2 (SPEC_15) pages — additive; do not affect v1 routes above.
+import V2Leaderboard from './pages/v2/Leaderboard';
+import V2PlayerProfile from './pages/v2/PlayerProfile';
+import V2AdminRating from './pages/v2/AdminRating';
+import V2Builder from './pages/v2/Builder';
+import V2Survey from './pages/v2/Survey';
+
+// SPEC_16 — player-facing magic-link flow.
+import V2Redeem from './pages/v2/Redeem';
+import V2MyCard from './pages/v2/MyCard';
+import V2RateTeammates from './pages/v2/RateTeammates';
+
 function App() {
   return (
     <Router>
@@ -15,6 +27,9 @@ function App() {
         <Navbar />
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
+            {/* v1 routes (untouched; still hit v1 endpoints which no longer exist
+                in v2 — v1 pages will error at runtime. v2 routes below are the
+                ones to use.) */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerProfile />} />
@@ -22,6 +37,19 @@ function App() {
             <Route path="/team-builder" element={<TeamBuilder />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/matches/new" element={<MatchCreation />} />
+
+            {/* v2 routes */}
+            <Route path="/v2"                       element={<Navigate to="/v2/leaderboard" replace />} />
+            <Route path="/v2/leaderboard"           element={<V2Leaderboard />} />
+            <Route path="/v2/profile/:person_id"    element={<V2PlayerProfile />} />
+            <Route path="/v2/admin-rating"          element={<V2AdminRating />} />
+            <Route path="/v2/builder"               element={<V2Builder />} />
+            <Route path="/v2/survey/:match_id"      element={<V2Survey />} />
+
+            {/* SPEC_16 — player-facing (session-authed via magic link) */}
+            <Route path="/r/:token"                 element={<V2Redeem />} />
+            <Route path="/v2/me"                    element={<V2MyCard />} />
+            <Route path="/v2/me/rate"               element={<V2RateTeammates />} />
           </Routes>
         </main>
       </div>

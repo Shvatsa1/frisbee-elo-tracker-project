@@ -1,0 +1,53 @@
+player_id,player_name,current_elo,total_games,wins,losses
+1,Alice,1200,16,10,6
+2,Bob,980,5,2,3
+3,Charlie,1050,10,5,5
+4,David,1000,0,0,0
+5,Eve,1100,20,12,8
+6,Frank,950,8,3,5
+7,Grace,1300,30,20,10
+8,Heidi,1000,0,0,0
+9,Pranav Teki,980,3,1,2
+10,Tarishi Jain,980,3,1,2
+11,Dr. Partha Patil,980,3,1,2
+12,Suryanshu Chauhan,1055.4150692990165,3,3,0
+13,Antara,980,3,1,2
+14,Harsh Sehgal,980,3,1,2
+15,Ayush,980,3,1,2
+16,Mayur Parmar,980,3,1,2
+17,Prea Jain,980,3,1,2
+18,Kushal,980,3,1,2
+19,Niddhi,980,3,1,2
+20,Divy,1000,0,0,0
+21,Chinmay,980,3,1,2
+22,Andre Gama,980,3,1,2
+23,Vignesh,984.5849307009835,3,1,2
+24,Plaksha,984.5849307009835,3,1,2
+25,Avi,984.5849307009835,3,1,2
+26,Sanskar,984.5849307009835,3,1,2
+27,Harshit Poddar,984.5849307009835,3,1,2
+28,Akhil,984.5849307009835,3,1,2
+29,Anmol Samat,984.5849307009835,3,1,2
+30,Shrestha,1055.4150692990165,3,3,0
+31,Aryan,1055.4150692990165,3,3,0
+32,Maaz,1000,0,0,0
+33,Divyansh,1055.4150692990165,3,3,0
+34,Zubin,1055.4150692990165,3,3,0
+35,Ahaan C,1055.4150692990165,3,3,0
+36,Stefan,1055.4150692990165,3,3,0
+37,Karan Arora,980,3,1,2
+38,Steffi K,1000,0,0,0
+39,Vikram Barada,1000,0,0,0
+40,Eswar Lade,1000,0,0,0
+41,Sourabh Meena,1000,0,0,0
+42,Shishir,1000,0,0,0
+43,Virag,1000,0,0,0
+44,Maan,1000,0,0,0
+45,Shantanu Vatsa,1000,0,0,0
+46,Vaibhav,980,3,1,2
+47,Saad,1055.4150692990165,3,3,0
+48,Shitanshu,1000,0,0,0
+49,Soham Dave,1000,0,0,0
+50,Kripa,1000,0,0,0
+51,Chaitanya,1000,0,0,0
+52,Binson,1000,0,0,0

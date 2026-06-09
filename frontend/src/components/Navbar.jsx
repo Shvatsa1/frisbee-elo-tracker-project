@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Users, LayoutDashboard, PlusCircle, History, Wand2, Menu, X, CalendarCheck } from 'lucide-react';
+import { Activity, Users, Wand2, Menu, X, Star, ClipboardCheck } from 'lucide-react';
 
 export default function Navbar() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
+  // v2 nav (SPEC_15). v1 routes are still mounted in App.jsx for safety
+  // but no longer surfaced; v2 leaderboard is the new home.
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/players', label: 'Players', icon: Users },
-    { path: '/gameday', label: 'Gameday Wizard', icon: CalendarCheck },
-    { path: '/team-builder', label: 'Team Builder', icon: Wand2 },
-    { path: '/matches', label: 'Matches', icon: History },
-    { path: '/matches/new', label: 'New Match', icon: PlusCircle },
+    { path: '/v2/leaderboard',   label: 'Leaderboard',   icon: Users },
+    { path: '/v2/admin-rating',  label: 'Admin Rating',  icon: Star },
+    { path: '/v2/builder',       label: 'Team Builder',  icon: Wand2 },
+    { path: '/v2/survey/0',      label: 'Survey',        icon: ClipboardCheck },
   ];
 
   return (
@@ -20,9 +20,9 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 text-primary font-bold text-xl tracking-tight z-50">
+          <Link to="/v2/leaderboard" className="flex items-center space-x-2 text-primary font-bold text-xl tracking-tight z-50">
             <Activity className="w-6 h-6" />
-            <span>UltiElo</span>
+            <span>UltiElo <span className="text-xs text-slate-500 font-normal align-middle">v2</span></span>
           </Link>
           
           {/* Desktop Nav */}

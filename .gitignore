@@ -26,6 +26,27 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# v2 test artifacts
+backend/test/.pgdata/
+backend/test/.pgdata-*/
+backend/test/*.log
+backend/test_output.log
+backend/_final_*.log
+backend/*_baseline.log
+backend/*_step*.log
+backend/*_smoke.log
+backend/test_baseline.log
+backend/test_output.log
+backend/test/*.log
+
+# v2 persistent local dev DB (never commit the cluster)
+backend/.localdb/
+exports/_test_*.xlsx
+
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Working session notes (not project code)
+session_logs/
+**/session_logs/

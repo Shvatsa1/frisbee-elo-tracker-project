@@ -1,0 +1,17 @@
+# Production image for the v2 frontend: build the SPA, serve it with nginx on
+# :8080 (see nginx.v2.conf). Used by docker-compose.v2.yml. Multi-stage so the
+# final image is just nginx + static assets (small, low-RAM).
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+# Relative API base so nginx on :8080 can proxy /api → backend-v2.
+ARG VITE_API_BASE=/api
+ENV VITE_API_BASE=$VITE_API_BASE
+RUN npm run build
+
+FROM nginx:alpine
+COPY nginx.v2.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 8080

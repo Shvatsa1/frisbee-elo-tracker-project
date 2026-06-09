@@ -1,4 +1,17 @@
 /**
+ * eloService — UltiElo result-Elo math (preserved from v1).
+ *
+ * In v2 this is no longer the headline rating; the headline is the blend in
+ * `skillService.js`. Elo here lives on as the *result* signal: every
+ * confirmed match produces an `elo_after`/`elo_change` per participating
+ * `match_player`, and a `source='result'` row is written into
+ * `skill_input` via `resultSkillFromMatch()`.
+ *
+ * The core math (calculateExpectedScore, getKFactor, processMatch) is
+ * unchanged from v1 — same K-factor curve (40 < 15 games, else 20).
+ */
+
+/**
  * Calculates the expected win probability for a team.
  * @param {number} teamElo - Average Elo of the team.
  * @param {number} opponentElo - Average Elo of the opponent team.
@@ -69,3 +82,47 @@ export function processMatch(teamAPlayers, teamBPlayers, winningTeam) {
     expectedWinB: expectedB
   };
 }
+
+// ----------------------------------------------------------------------
+// v2 addition: map an Elo outcome into one skill_input(source='result')
+// row per participating player. Offence/defence-neutral by default — the
+// minis result has no per-line split — but if the player has an
+// `od_preference` of 'offence' or 'defence', the result is biased toward
+// that side. See SPEC_15 §3.
+// ----------------------------------------------------------------------
+
+// How much each player's result skill diverges from their post-match
+// elo_after, biased by od_preference. Symmetric: offence-preference
+// raises the offence side, lowers the defence side, by the same amount.
+const OD_BIAS = 25;
+
+/**
+ * Compute the per-player offence/defence "result" signal given the
+ * processMatch output for one team. Pure function; no DB I/O.
+ *
+ * @param {Array} updatedTeam - rows from processMatch().updatedTeamA/B,
+ *   each augmented (or not) with `od_preference`.
+ * @returns {Array<{player_id, offence_score, defence_score, elo_after, elo_change}>}
+ */
+export function resultSkillFromMatch(updatedTeam) {
+  return updatedTeam.map(p => {
+    const base = p.elo_after;
+    let off = base;
+    let def = base;
+    if (p.od_preference === 'offence') {
+      off = base + OD_BIAS;
+      def = base - OD_BIAS;
+    } else if (p.od_preference === 'defence') {
+      off = base - OD_BIAS;
+      def = base + OD_BIAS;
+    }
+    return {
+      player_id: p.player_id,
+      offence_score: off,
+      defence_score: def,
+      elo_after: p.elo_after,
+      elo_change: p.elo_change,
+    };
+  });
+}
+

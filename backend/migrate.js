@@ -1,123 +1,50 @@
+/**
+ * UltiElo v2 idempotent migration.
+ *
+ * In v1 this file applied additive ALTER TABLEs to a long-lived schema.
+ * v2 is a rewrite; this script simply calls the same v2-schema and v2-seed
+ * SQL as `initDb.js` (everything is `CREATE TABLE IF NOT EXISTS` /
+ * `ON CONFLICT DO NOTHING`), so it's safe to run repeatedly on an
+ * already-migrated database without changing data.
+ *
+ * Additive guards for any future v2.x columns/tables go below the
+ * core-schema apply step.
+ */
 import { pool } from './db.js';
+import { applyV2Schema, applyV2Seed } from './initDb.js';
 
 async function migrate() {
-  console.log('Running migrations...');
+  console.log('[migrate] connecting...');
   const client = await pool.connect();
-  
   try {
     await client.query('BEGIN');
-    
-    // Ensure core tables exist (if this is run on a fresh instance)
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS players (
-        player_id SERIAL PRIMARY KEY,
-        player_name VARCHAR(255) UNIQUE NOT NULL,
-        current_elo FLOAT DEFAULT 1000,
-        total_games INTEGER DEFAULT 0,
-        wins INTEGER DEFAULT 0,
-        losses INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS matches (
-        match_id SERIAL PRIMARY KEY,
-        match_date DATE NOT NULL,
-        location VARCHAR(255),
-        team_a_score INTEGER NOT NULL,
-        team_b_score INTEGER NOT NULL,
-        winning_team VARCHAR(10) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS match_players (
-        id SERIAL PRIMARY KEY,
-        match_id INTEGER REFERENCES matches(match_id) ON DELETE CASCADE,
-        player_id INTEGER REFERENCES players(player_id) ON DELETE CASCADE,
-        team VARCHAR(10) NOT NULL,
-        elo_before FLOAT NOT NULL,
-        elo_after FLOAT NOT NULL,
-        elo_change FLOAT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
 
-    // Phase 1 Schema Upgrades
-    console.log('Adding new columns to matches...');
-    const matchColumns = await client.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name='matches'
-    `);
-    const cols = matchColumns.rows.map(r => r.column_name);
-    
-    if (!cols.includes('expected_win_team_a')) {
-      await client.query(`ALTER TABLE matches ADD COLUMN expected_win_team_a FLOAT DEFAULT NULL`);
-    }
-    if (!cols.includes('expected_win_team_b')) {
-      await client.query(`ALTER TABLE matches ADD COLUMN expected_win_team_b FLOAT DEFAULT NULL`);
-    }
-    if (!cols.includes('team_a_avg_elo')) {
-      await client.query(`ALTER TABLE matches ADD COLUMN team_a_avg_elo FLOAT DEFAULT NULL`);
-    }
-    if (!cols.includes('team_b_avg_elo')) {
-      await client.query(`ALTER TABLE matches ADD COLUMN team_b_avg_elo FLOAT DEFAULT NULL`);
-    }
-    if (!cols.includes('team_a_name')) {
-      await client.query(`ALTER TABLE matches ADD COLUMN team_a_name VARCHAR(255) DEFAULT NULL`);
-    }
-    if (!cols.includes('team_b_name')) {
-      await client.query(`ALTER TABLE matches ADD COLUMN team_b_name VARCHAR(255) DEFAULT NULL`);
-    }
+    console.log('[migrate] applying v2 schema (idempotent)...');
+    await applyV2Schema(client);
 
-    console.log('Creating player_statistics_cache...');
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS player_statistics_cache (
-        player_id INTEGER PRIMARY KEY REFERENCES players(player_id) ON DELETE CASCADE,
-        win_percentage FLOAT DEFAULT 0,
-        streak INTEGER DEFAULT 0,
-        clutch_score FLOAT DEFAULT 0,
-        consistency_score FLOAT DEFAULT 0,
-        activity_score FLOAT DEFAULT 0,
-        last_elo_change FLOAT DEFAULT 0,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    
-    // Ensure column exists if table already existed
-    const cacheCols = await client.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name='player_statistics_cache'
-    `);
-    if (!cacheCols.rows.map(r => r.column_name).includes('last_elo_change')) {
-      await client.query(`ALTER TABLE player_statistics_cache ADD COLUMN last_elo_change FLOAT DEFAULT 0`);
-    }
+    console.log('[migrate] applying v2 seed (idempotent)...');
+    await applyV2Seed(client);
 
-    console.log('Creating activity_feed...');
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS activity_feed (
-        id SERIAL PRIMARY KEY,
-        event_type VARCHAR(50) NOT NULL,
-        player_id INTEGER REFERENCES players(player_id) ON DELETE SET NULL,
-        match_id INTEGER REFERENCES matches(match_id) ON DELETE SET NULL,
-        description TEXT NOT NULL,
-        meta_data JSONB,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+    // ----- Additive v2.x guards (add new columns/tables below) -----
+    // Example pattern (left commented for future use):
+    //
+    //   const cols = (await client.query(`
+    //     SELECT column_name FROM information_schema.columns
+    //     WHERE table_name='player_skill'
+    //   `)).rows.map(r => r.column_name);
+    //   if (!cols.includes('confidence')) {
+    //     await client.query(`ALTER TABLE player_skill ADD COLUMN confidence FLOAT`);
+    //   }
 
     await client.query('COMMIT');
-    console.log('Migrations completed successfully.');
+    console.log('[migrate] done.');
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Migration failed:', err);
+    console.error('[migrate] failed:', err);
+    process.exitCode = 1;
   } finally {
     client.release();
-    process.exit();
+    await pool.end();
   }
 }
 
