@@ -4,10 +4,12 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Production image: skip devDependencies. The test harness pulls
-# @embedded-postgres/windows-x64 (Windows-only) which cannot install on Linux,
-# and is not needed at runtime — the server connects to a real Postgres.
-RUN npm install --omit=dev
+# Production image: install runtime deps only. The test harness pulls
+# @embedded-postgres/windows-x64 (Windows-only, a devDependency) which npm
+# rejects with EBADPLATFORM on Linux even while just reading the lockfile.
+# --no-package-lock resolves the 5 prod deps straight from package.json
+# (none platform-specific); the server connects to a real Postgres at runtime.
+RUN npm install --omit=dev --no-package-lock
 
 COPY . .
 
