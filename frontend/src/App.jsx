@@ -27,10 +27,11 @@ function App() {
         <Navbar />
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
-            {/* v1 routes (untouched; still hit v1 endpoints which no longer exist
-                in v2 — v1 pages will error at runtime. v2 routes below are the
-                ones to use.) */}
-            <Route path="/" element={<Dashboard />} />
+            {/* Root → v2 leaderboard. The v1 Dashboard hits v1 endpoints that no
+                longer exist in v2 (it fails with "Failed to load data"), so the
+                v2 leaderboard is the real home. v1 routes stay mounted below for
+                safety but are not surfaced (see Navbar). */}
+            <Route path="/" element={<Navigate to="/v2/leaderboard" replace />} />
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerProfile />} />
             <Route path="/gameday" element={<Gameday />} />
