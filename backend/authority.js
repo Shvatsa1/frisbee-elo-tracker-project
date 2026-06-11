@@ -32,6 +32,27 @@ function getPersonHeader(req) {
 }
 
 /**
+ * Interim admin hardening (pre-SPEC_17 identity sessions).
+ *
+ * Tier-0 trusts the `X-Person-Id` header, which is spoofable — fine while the
+ * deploy was IP-only, but a hole once the site is public (Tailscale Funnel).
+ * When `ADMIN_KEY` is set in the environment, every admin-authority route ALSO
+ * requires a matching `X-Admin-Key` header, so spoofing a person_id alone is no
+ * longer enough. If `ADMIN_KEY` is unset (local dev / test), the gate is a
+ * no-op and behaviour is unchanged. Constant-time compare to avoid leaking the
+ * key length/prefix via timing.
+ */
+function adminKeyOk(req) {
+  const expected = process.env.ADMIN_KEY;
+  if (!expected) return true; // gate disabled
+  const got = req.header('X-Admin-Key') || '';
+  const a = Buffer.from(got);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  try { return crypto.timingSafeEqual(a, b); } catch { return false; }
+}
+
+/**
  * Populate req.actor from the X-Person-Id header. Returns 401 if missing
  * or not a real person. Public-read routes don't use this.
  */
@@ -84,6 +105,9 @@ export function requireContextAuthority(opts = {}) {
       if (!req.actor) {
         return res.status(401).json({ error: 'not authenticated' });
       }
+      if (!adminKeyOk(req)) {
+        return res.status(403).json({ error: 'admin key required or invalid' });
+      }
       const context_id = await resolveContextId(req);
       if (!context_id) {
         return res.status(400).json({ error: 'context_id could not be resolved for this request' });
@@ -113,6 +137,7 @@ export function requireContextAuthority(opts = {}) {
  */
 export function requireGlobalAdmin(req, res, next) {
   if (!req.actor) return res.status(401).json({ error: 'not authenticated' });
+  if (!adminKeyOk(req)) return res.status(403).json({ error: 'admin key required or invalid' });
   pool.query(
     `SELECT 1 FROM context_authority WHERE person_id = $1 AND role = 'admin' LIMIT 1`,
     [req.actor.person_id],

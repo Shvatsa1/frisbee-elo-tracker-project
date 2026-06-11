@@ -50,11 +50,39 @@ export function setSessionId(id) {
   else localStorage.setItem('ultielo:sessionId', String(id));
 }
 
+// Fast role-gate (interim, pre-SPEC_17 identity sessions): a device-local flag
+// that reveals the admin-only nav (Admin Rating, Team Builder, Survey). Players
+// never see those tabs. An admin unlocks their own device by visiting any page
+// with `?admin=1` (and `?admin=0` to hide again). This is a UI convenience only —
+// the backend still enforces authority on every admin write.
+export function isAdminView() {
+  return localStorage.getItem('ultielo:adminView') === '1';
+}
+
+export function setAdminView(on) {
+  if (on) localStorage.setItem('ultielo:adminView', '1');
+  else localStorage.removeItem('ultielo:adminView');
+}
+
+// Interim admin hardening (pairs with backend ADMIN_KEY). A device-local secret
+// attached as `X-Admin-Key` on writes; without it the backend 403s admin routes
+// even if X-Person-Id is spoofed. Admins set it once via `?key=<secret>`.
+export function getAdminKey() {
+  return localStorage.getItem('ultielo:adminKey') || null;
+}
+
+export function setAdminKey(k) {
+  if (k == null || k === '') localStorage.removeItem('ultielo:adminKey');
+  else localStorage.setItem('ultielo:adminKey', String(k));
+}
+
 api.interceptors.request.use((cfg) => {
   // Tier-0 admin header — attached only on writes; reads stay public.
   if (cfg.method && cfg.method.toLowerCase() !== 'get') {
     const id = getActorId();
     if (id) cfg.headers['X-Person-Id'] = String(id);
+    const ak = getAdminKey();
+    if (ak) cfg.headers['X-Admin-Key'] = ak;
   }
   // SPEC_16: session header — attached on EVERY request (the /api/me reads
   // need it too). Routes that don't require a session simply ignore it.

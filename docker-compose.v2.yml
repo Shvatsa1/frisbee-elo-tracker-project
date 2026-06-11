@@ -25,9 +25,14 @@ services:
     environment:
       - PORT=5000
       - DATABASE_URL=postgres://postgres:password@db-v2:5432/frisbee_elo_v2
-      # Peer rating stays gated until HTTPS; /api/rate is governed by
-      # context.open_rating instead (see SPEC_16).
+      # Peer rating for the player-facing /api/rate route is governed by
+      # context.open_rating (TRUE = always-on peer rating), NOT this flag.
+      # ENABLE_PEER_RATING only toggles the legacy /api/skill/peer route.
       - ENABLE_PEER_RATING=0
+      # Interim admin hardening (public HTTPS): admin write routes also require
+      # X-Admin-Key == ADMIN_KEY. Value supplied via the VM-side .env (never
+      # committed). Unset = gate disabled (local/test).
+      - ADMIN_KEY=${ADMIN_KEY:-}
     depends_on:
       - db-v2
     mem_limit: 192m

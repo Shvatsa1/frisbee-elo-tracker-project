@@ -1,18 +1,52 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Users, Wand2, Menu, X, Star, ClipboardCheck } from 'lucide-react';
+import { Activity, Users, Wand2, Menu, X, Star, ClipboardCheck, CreditCard, ThumbsUp } from 'lucide-react';
+import { getSessionId, isAdminView, setAdminView, setAdminKey } from '../pages/v2/_api';
 
 export default function Navbar() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Re-evaluated on every route change (useLocation dep) so the nav reflects
+  // login state right after a magic-link redeem and the admin flag after `?admin=1`.
+  const [admin, setAdmin] = useState(isAdminView());
+  const [loggedIn, setLoggedIn] = useState(!!getSessionId());
 
-  // v2 nav (SPEC_15). v1 routes are still mounted in App.jsx for safety
-  // but no longer surfaced; v2 leaderboard is the new home.
+  useEffect(() => {
+    // Admin unlock/lock via `?admin=1` / `?admin=0` — device-local, then strip
+    // the param so it never gets shared or screenshotted.
+    const qs = new URLSearchParams(location.search);
+    let changed = false;
+    if (qs.has('admin')) { setAdminView(qs.get('admin') === '1'); qs.delete('admin'); changed = true; }
+    if (qs.has('key'))   { setAdminKey(qs.get('key')); qs.delete('key'); changed = true; }
+    if (changed) {
+      const next = location.pathname + (qs.toString() ? `?${qs}` : '') + location.hash;
+      window.history.replaceState({}, document.title, next);
+    }
+    setAdmin(isAdminView());
+    setLoggedIn(!!getSessionId());
+  }, [location]);
+
+  // Three visibility buckets:
+  //   public  → everyone (spectators included)
+  //   player  → only when a magic-link session exists
+  //   admin   → only when the device-local admin flag is set
+  const publicItems = [
+    { path: '/v2/leaderboard', label: 'Leaderboard', icon: Users },
+  ];
+  const playerItems = [
+    { path: '/v2/me',      label: 'My Card', icon: CreditCard },
+    { path: '/v2/me/rate', label: 'Rate',    icon: ThumbsUp },
+  ];
+  const adminItems = [
+    { path: '/v2/admin-rating', label: 'Admin Rating', icon: Star },
+    { path: '/v2/builder',      label: 'Team Builder',  icon: Wand2 },
+    { path: '/v2/survey/0',     label: 'Survey',        icon: ClipboardCheck },
+  ];
+
   const navItems = [
-    { path: '/v2/leaderboard',   label: 'Leaderboard',   icon: Users },
-    { path: '/v2/admin-rating',  label: 'Admin Rating',  icon: Star },
-    { path: '/v2/builder',       label: 'Team Builder',  icon: Wand2 },
-    { path: '/v2/survey/0',      label: 'Survey',        icon: ClipboardCheck },
+    ...publicItems,
+    ...(loggedIn ? playerItems : []),
+    ...(admin ? adminItems : []),
   ];
 
   return (
@@ -24,7 +58,7 @@ export default function Navbar() {
             <Activity className="w-6 h-6" />
             <span>UltiElo <span className="text-xs text-slate-500 font-normal align-middle">v2</span></span>
           </Link>
-          
+
           {/* Desktop Nav */}
           <div className="hidden md:flex space-x-1">
             {navItems.map((item) => {
@@ -35,8 +69,8 @@ export default function Navbar() {
                   key={item.path}
                   to={item.path}
                   className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive 
-                      ? 'bg-primary/10 text-primary' 
+                    isActive
+                      ? 'bg-primary/10 text-primary'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                   }`}
                 >
@@ -48,7 +82,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Button */}
-          <button 
+          <button
             className="md:hidden p-2 text-slate-400 hover:text-white focus:outline-none z-50"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -70,8 +104,8 @@ export default function Navbar() {
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-colors ${
-                    isActive 
-                      ? 'bg-primary/15 text-primary border border-primary/20' 
+                    isActive
+                      ? 'bg-primary/15 text-primary border border-primary/20'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
