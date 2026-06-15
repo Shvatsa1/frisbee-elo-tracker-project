@@ -269,6 +269,17 @@ export function resolveRater(req, res, next) {
   next();
 }
 
+// Soft session lookup. Returns the session object or null — never sends a
+// response. For routes that are public but want to enrich the payload when the
+// caller happens to have a session.
+export function peekRater(req) {
+  const sid = req.header('X-Session-Id');
+  if (!sid) return null;
+  const s = _sessions.get(sid);
+  if (!s || s.expires_at <= nowMs()) return null;
+  return s;
+}
+
 // Test-only — allow suites to nuke the in-memory store between scenarios.
 export function _resetSessionsForTests() { _sessions.clear(); }
 
@@ -303,6 +314,16 @@ async function resolveContextId(req) {
     const build_id = parseInt(buildMatch[1], 10);
     const { rows } = await pool.query(
       `SELECT context_id FROM team_build WHERE build_id = $1`, [build_id],
+    );
+    return rows[0]?.context_id ?? null;
+  }
+
+  // 4. /api/admin/event/:id[/...] → look up via event row
+  const eventMatch = url.match(/\/api\/admin\/event\/(\d+)(?:\/|\?|$)/);
+  if (eventMatch) {
+    const event_id = parseInt(eventMatch[1], 10);
+    const { rows } = await pool.query(
+      `SELECT context_id FROM event WHERE event_id = $1`, [event_id],
     );
     return rows[0]?.context_id ?? null;
   }

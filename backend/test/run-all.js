@@ -20,6 +20,7 @@ const SUITES = [
   'export.test.js',
   'import.test.js',
   'tokens.test.js',
+  'event_registration.test.js',
 ];
 
 async function runOne(name) {

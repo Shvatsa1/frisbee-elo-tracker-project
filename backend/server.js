@@ -32,7 +32,16 @@ import {
   requireGlobalAdmin,
   resolveRater,
   redeemToken,
+  peekRater,
 } from './authority.js';
+import {
+  newShareToken,
+  registerForEvent,
+  withdrawFromEvent,
+  promoteEvent,
+  getPublicEvent,
+  getAdminRoster,
+} from './eventService.js';
 import {
   validateCard,
   cardToOffenceDefence,
@@ -958,6 +967,130 @@ export function createApp() {
         matches: matches.map(m => byMatch.get(m.match_id)),
         latest_date: matches[0].match_date,
       });
+    } catch (err) { return fail(res, err); }
+  });
+
+  // ==================================================================
+  // SPEC_17 minimum slice — Events (Wednesday-minis loop)
+  //   Admin creates an event; players use their durable identity session
+  //   to register/withdraw; admin sees the roster ordered by signup time.
+  //   Promotion sweep deferred to the next slice — admin promotes manually
+  //   for now via POST /api/admin/event/:id/promote.
+  // ==================================================================
+
+  // POST /api/event — admin creates an event (requires X-Admin-Key).
+  app.post('/api/event', resolveActor, requireContextAuthority(), async (req, res) => {
+    const { context_id, title, event_date, event_time, location, capacity, registration_opens_at } = req.body || {};
+    if (!context_id || !title || !event_date) {
+      return res.status(400).json({ error: 'context_id, title, event_date required' });
+    }
+    try {
+      const share_token = newShareToken();
+      const row = (await pool.query(
+        `INSERT INTO event (context_id, title, event_date, event_time, location,
+                            capacity, share_token, registration_opens_at, created_by)
+              VALUES ($1, $2, $3, $4, $5, COALESCE($6, 28), $7, $8, $9)
+              RETURNING *`,
+        [context_id, title, event_date, event_time || null, location || null,
+         capacity || null, share_token, registration_opens_at || null, req.actor.person_id],
+      )).rows[0];
+      res.status(201).json(row);
+    } catch (err) { return fail(res, err); }
+  });
+
+  // GET /api/event/open?context_id= — first open event for the context (newest by
+  // event_date). Used by the player flow to land directly on the upcoming game.
+  app.get('/api/event/open', async (req, res) => {
+    const context_id = parseInt(req.query.context_id, 10);
+    if (!context_id) return res.status(400).json({ error: 'context_id required' });
+    try {
+      const row = (await pool.query(
+        `SELECT event_id, share_token, title, event_date, event_time, location
+           FROM event
+          WHERE context_id = $1 AND status = 'open' AND event_date >= CURRENT_DATE
+          ORDER BY event_date ASC, created_at ASC
+          LIMIT 1`,
+        [context_id],
+      )).rows[0] || null;
+      res.json({ event: row });
+    } catch (err) { return fail(res, err); }
+  });
+
+  // GET /api/e/:share_token — public event view; surfaces caller's own
+  // status + waitlist position if they have an identity session.
+  app.get('/api/e/:share_token', async (req, res) => {
+    try {
+      const viewer = peekRater(req);
+      const ev = await getPublicEvent(req.params.share_token, viewer?.person_id || null);
+      if (!ev) return res.status(404).json({ error: 'event not found' });
+      res.json(ev);
+    } catch (err) { return fail(res, err); }
+  });
+
+  // POST /api/e/:share_token/register — player registers themselves.
+  app.post('/api/e/:share_token/register', resolveRater, async (req, res) => {
+    try {
+      const ev = (await pool.query(
+        `SELECT event_id FROM event WHERE share_token = $1`,
+        [req.params.share_token],
+      )).rows[0];
+      if (!ev) return res.status(404).json({ error: 'event not found' });
+      const result = await registerForEvent(ev.event_id, req.rater.person_id);
+      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      res.status(201).json(result.registration);
+    } catch (err) { return fail(res, err); }
+  });
+
+  // POST /api/e/:share_token/withdraw — player removes themselves.
+  app.post('/api/e/:share_token/withdraw', resolveRater, async (req, res) => {
+    try {
+      const ev = (await pool.query(
+        `SELECT event_id FROM event WHERE share_token = $1`,
+        [req.params.share_token],
+      )).rows[0];
+      if (!ev) return res.status(404).json({ error: 'event not found' });
+      const result = await withdrawFromEvent(ev.event_id, req.rater.person_id);
+      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      res.json(result.registration);
+    } catch (err) { return fail(res, err); }
+  });
+
+  // GET /api/admin/event/:id — full roster for the admin (main + waitlist + withdrawn).
+  app.get('/api/admin/event/:id', resolveActor, requireContextAuthority(), async (req, res) => {
+    try {
+      const roster = await getAdminRoster(parseInt(req.params.id, 10));
+      if (!roster) return res.status(404).json({ error: 'event not found' });
+      res.json(roster);
+    } catch (err) { return fail(res, err); }
+  });
+
+  // POST /api/admin/event/:id/promote — manual sweep (waitlist → main until cap).
+  app.post('/api/admin/event/:id/promote', resolveActor, requireContextAuthority(), async (req, res) => {
+    try {
+      const out = await promoteEvent(parseInt(req.params.id, 10));
+      res.json(out);
+    } catch (err) { return fail(res, err); }
+  });
+
+  // GET /api/admin/events?context_id= — list events for an admin.
+  app.get('/api/admin/events', resolveActor, async (req, res) => {
+    const context_id = parseInt(req.query.context_id, 10);
+    if (!context_id) return res.status(400).json({ error: 'context_id required' });
+    try {
+      // soft authority: only return events the actor is an admin/coach for
+      const { rows: auth } = await pool.query(
+        `SELECT role FROM context_authority WHERE context_id=$1 AND person_id=$2`,
+        [context_id, req.actor.person_id],
+      );
+      if (!auth.length) return res.status(403).json({ error: 'not authorised' });
+      const rows = (await pool.query(
+        `SELECT event_id, title, event_date, event_time, location, capacity, status,
+                share_token, created_at
+           FROM event WHERE context_id = $1
+          ORDER BY event_date DESC, created_at DESC`,
+        [context_id],
+      )).rows;
+      res.json({ events: rows });
     } catch (err) { return fail(res, err); }
   });
 

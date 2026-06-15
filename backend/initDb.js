@@ -254,6 +254,41 @@ CREATE TABLE IF NOT EXISTS player_statistics_cache (
   current_elo      FLOAT   NOT NULL DEFAULT 1000,
   updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ============================================================
+-- Event registration (SPEC_17 minimum slice: Soozy replacement)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS event (
+  event_id              SERIAL PRIMARY KEY,
+  context_id            INTEGER NOT NULL REFERENCES context(context_id) ON DELETE CASCADE,
+  title                 VARCHAR(255) NOT NULL,
+  event_date            DATE NOT NULL,
+  event_time            VARCHAR(16),
+  location              VARCHAR(255),
+  capacity              INTEGER NOT NULL DEFAULT 28 CHECK (capacity >= 1),
+  status                VARCHAR(16) NOT NULL DEFAULT 'open'
+                         CHECK (status IN ('open','closed','cancelled')),
+  registration_opens_at TIMESTAMP,
+  share_token           VARCHAR(128) UNIQUE NOT NULL,
+  created_by            INTEGER NOT NULL REFERENCES person(person_id),
+  created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS event_context_idx ON event(context_id);
+CREATE INDEX IF NOT EXISTS event_status_idx  ON event(status);
+
+CREATE TABLE IF NOT EXISTS event_registration (
+  id            SERIAL PRIMARY KEY,
+  event_id      INTEGER NOT NULL REFERENCES event(event_id)   ON DELETE CASCADE,
+  person_id     INTEGER NOT NULL REFERENCES person(person_id) ON DELETE CASCADE,
+  status        VARCHAR(16) NOT NULL DEFAULT 'main'
+                 CHECK (status IN ('main','waitlist','withdrawn')),
+  signed_up_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  promoted_at   TIMESTAMP,
+  withdrawn_at  TIMESTAMP,
+  UNIQUE (event_id, person_id)
+);
+CREATE INDEX IF NOT EXISTS event_reg_event_status_idx
+  ON event_registration(event_id, status, signed_up_at);
 `;
 
 // Admin is the only person we seed; we identify it by a fixed rating_token
