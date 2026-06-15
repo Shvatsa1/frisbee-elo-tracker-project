@@ -39,7 +39,8 @@ export default function Navbar() {
     { path: '/v2/me/rate', label: 'Rate',    icon: ThumbsUp },
   ];
   const adminItems = [
-    { path: '/v2/admin-rating', label: 'Admin Rating', icon: Star },
+    { path: '/v2/admin/events', label: 'Events',        icon: CalendarDays },
+    { path: '/v2/admin-rating', label: 'Admin Rating',  icon: Star },
     { path: '/v2/builder',      label: 'Team Builder',  icon: Wand2 },
     { path: '/v2/survey/0',     label: 'Survey',        icon: ClipboardCheck },
   ];

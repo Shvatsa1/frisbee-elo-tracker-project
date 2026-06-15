@@ -7,11 +7,14 @@
  * spread, and any warnings (un-rated players, etc.).
  */
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { v2 } from './_api.js';
 import ActingAs from './_ActingAs.jsx';
 import ContextPicker from './_ContextPicker.jsx';
 
 export default function Builder() {
+  const [searchParams] = useSearchParams();
+  const eventIdParam = parseInt(searchParams.get('event_id'), 10);
   const [actor, setActor]   = useState(null);
   const [ctxId, setCtxId]   = useState(null);
   const [players, setPlayers] = useState([]);
@@ -22,11 +25,32 @@ export default function Builder() {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [eventInfo, setEventInfo] = useState(null);
+  const [prefillPersonIds, setPrefillPersonIds] = useState(null);
+
+  // If invoked with ?event_id=N, lock context and prefill the roster from
+  // the event's main list (waitlist excluded; admin can promote first).
+  useEffect(() => {
+    if (!Number.isFinite(eventIdParam) || !actor) return;
+    v2.adminRoster(eventIdParam)
+      .then(r => {
+        setCtxId(r.context_id);
+        setEventInfo({ title: r.title, event_date: r.event_date, main: r.main.length, capacity: r.capacity });
+        setPrefillPersonIds(new Set(r.main.map(m => m.person_id)));
+      })
+      .catch(e => setErr(e?.response?.data?.error || e.message));
+  }, [eventIdParam, actor]);
 
   useEffect(() => {
     if (!ctxId) { setPlayers([]); return; }
-    v2.leaderboard(ctxId).then(setPlayers);
-  }, [ctxId]);
+    v2.leaderboard(ctxId).then(rows => {
+      setPlayers(rows);
+      if (prefillPersonIds) {
+        const ids = rows.filter(r => prefillPersonIds.has(r.person_id)).map(r => r.player_id);
+        setSelected(new Set(ids));
+      }
+    });
+  }, [ctxId, prefillPersonIds]);
 
   function toggle(id) {
     setSelected(prev => {
@@ -59,6 +83,11 @@ export default function Builder() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Team Builder</h1>
         <p className="text-slate-400">Generate balanced teams from today's signups.</p>
+        {eventInfo && (
+          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs">
+            Prefilled from <span className="font-semibold">{eventInfo.title}</span> · {eventInfo.main}/{eventInfo.capacity} signed up
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-3">

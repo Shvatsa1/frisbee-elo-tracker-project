@@ -36,6 +36,7 @@ function TeamColumn({ name, score, players, won }) {
 export default function Results() {
   const [ctxId, setCtxId] = useState(getContextId());
   const [data, setData] = useState(null);
+  const [openEvent, setOpenEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
@@ -54,6 +55,9 @@ export default function Results() {
       .then(setData)
       .catch(e => setErr(e?.response?.data?.error || e.message))
       .finally(() => setLoading(false));
+    v2.openEvent(ctxId)
+      .then(r => setOpenEvent(r.event))
+      .catch(() => setOpenEvent(null));
   }, [ctxId]);
 
   const matches = data?.matches ?? [];
@@ -66,6 +70,26 @@ export default function Results() {
           {data?.latest_date ? `Most recent session — ${fmtDate(data.latest_date)}` : 'Recent results'}
         </p>
       </div>
+
+      {openEvent && (
+        <Link
+          to={`/v2/e/${openEvent.share_token}`}
+          className="block glass-panel p-4 border border-accent/30 bg-accent/5 hover:bg-accent/10 transition"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-accent font-semibold">Up next</div>
+              <div className="text-lg font-bold mt-0.5">{openEvent.title}</div>
+              <div className="text-sm text-slate-400">
+                {fmtDate(openEvent.event_date)}
+                {openEvent.event_time && ` · ${openEvent.event_time}`}
+                {openEvent.location && ` · ${openEvent.location}`}
+              </div>
+            </div>
+            <span className="px-3 py-1.5 rounded-lg bg-accent text-slate-900 text-sm font-semibold">Sign up →</span>
+          </div>
+        </Link>
+      )}
 
       {err && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-sm">{err}</div>}
       {loading && <div className="text-slate-400">Loading…</div>}

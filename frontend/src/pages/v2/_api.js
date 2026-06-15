@@ -167,4 +167,14 @@ export const v2 = {
   updateCard:     (card)      => api.put('/me/card', { card }).then(r => r.data),
   ratePeer:       (subject_player_id, tier) =>
     api.post('/rate', { subject_player_id, tier }).then(r => r.data),
+
+  // SPEC_17 events ----------------------------------------------------
+  openEvent:      (ctxId)     => api.get(`/event/open?context_id=${ctxId}`).then(r => r.data),
+  publicEvent:    (token)     => api.get(`/e/${token}`).then(r => r.data),
+  registerEvent:  (token)     => api.post(`/e/${token}/register`).then(r => r.data),
+  withdrawEvent:  (token)     => api.post(`/e/${token}/withdraw`).then(r => r.data),
+  createEvent:    (body)      => api.post('/event', body).then(r => r.data),
+  adminEvents:    (ctxId)     => api.get(`/admin/events?context_id=${ctxId}`).then(r => r.data),
+  adminRoster:    (id)        => api.get(`/admin/event/${id}`).then(r => r.data),
+  adminPromote:   (id)        => api.post(`/admin/event/${id}/promote`).then(r => r.data),
 };

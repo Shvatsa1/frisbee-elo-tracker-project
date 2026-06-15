@@ -21,6 +21,10 @@ import V2Redeem from './pages/v2/Redeem';
 import V2MyCard from './pages/v2/MyCard';
 import V2RateTeammates from './pages/v2/RateTeammates';
 
+// SPEC_17 minimum slice — events / signup
+import V2EventRegister from './pages/v2/EventRegister';
+import V2AdminEvents from './pages/v2/AdminEvents';
+
 function App() {
   return (
     <Router>
@@ -52,6 +56,10 @@ function App() {
             <Route path="/r/:token"                 element={<V2Redeem />} />
             <Route path="/v2/me"                    element={<V2MyCard />} />
             <Route path="/v2/me/rate"               element={<V2RateTeammates />} />
+
+            {/* SPEC_17 minimum slice — events */}
+            <Route path="/v2/e/:share_token"        element={<V2EventRegister />} />
+            <Route path="/v2/admin/events"          element={<V2AdminEvents />} />
           </Routes>
         </main>
       </div>
