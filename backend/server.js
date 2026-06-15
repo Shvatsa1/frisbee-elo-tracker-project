@@ -178,7 +178,7 @@ export function createApp() {
     if (!Number.isFinite(person_id)) return res.status(400).json({ error: 'invalid person_id' });
     try {
       const person = (await pool.query(
-        `SELECT person_id, name, created_at FROM person WHERE person_id = $1`,
+        `SELECT person_id, name, created_at, photo_url FROM person WHERE person_id = $1`,
         [person_id],
       )).rows[0];
       if (!person) return res.status(404).json({ error: 'person not found' });
@@ -188,11 +188,15 @@ export function createApp() {
                ps.offence_skill, ps.defence_skill, ps.headline_scalar,
                ps.n_peers, ps.n_results,
                psc.current_elo, psc.total_games, psc.wins, psc.losses,
-               psc.win_percentage, psc.streak, psc.last_elo_change
+               psc.win_percentage, psc.streak, psc.last_elo_change,
+               pc.throwing, pc.cutting, pc.handling, pc.defense, pc.speed, pc.endurance,
+               pa.position, pa.hand, pa.style, pa.od_preference
         FROM player pl
         JOIN context c             ON c.context_id = pl.context_id
         LEFT JOIN player_skill ps  ON ps.player_id = pl.player_id
         LEFT JOIN player_statistics_cache psc ON psc.player_id = pl.player_id
+        LEFT JOIN player_card pc   ON pc.player_id = pl.player_id
+        LEFT JOIN player_attribute pa ON pa.player_id = pl.player_id
         WHERE pl.person_id = $1
         ORDER BY pl.created_at ASC
       `, [person_id])).rows;
@@ -910,6 +914,50 @@ export function createApp() {
          WHERE mp.match_id = $1
       `, [match_id])).rows;
       res.json({ ...m, players });
+    } catch (err) { return fail(res, err); }
+  });
+
+  // GET /api/matches?context_id=&limit= — recent confirmed matches (newest
+  // first) with per-team rosters. Public. Powers the player "Last Week" view.
+  app.get('/api/matches', async (req, res) => {
+    const context_id = parseInt(req.query.context_id, 10);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    if (!Number.isFinite(context_id)) {
+      return res.status(400).json({ error: 'context_id required' });
+    }
+    try {
+      const matches = (await pool.query(`
+        SELECT match_id, context_id, match_date, location,
+               team_a_name, team_b_name, team_a_score, team_b_score,
+               winning_team, team_a_avg_elo, team_b_avg_elo, status, created_at
+          FROM match
+         WHERE context_id = $1 AND status = 'confirmed'
+         ORDER BY match_date DESC, created_at DESC
+         LIMIT $2`, [context_id, limit])).rows;
+
+      if (matches.length === 0) return res.json({ matches: [], latest_date: null });
+
+      const ids = matches.map(m => m.match_id);
+      const players = (await pool.query(`
+        SELECT mp.match_id, mp.team, pr.name, pr.person_id
+          FROM match_player mp
+          JOIN player pl ON pl.player_id = mp.player_id
+          JOIN person pr ON pr.person_id = pl.person_id
+         WHERE mp.match_id = ANY($1)
+         ORDER BY pr.name`, [ids])).rows;
+
+      const byMatch = new Map(
+        matches.map(m => [m.match_id, { ...m, team_a_players: [], team_b_players: [] }]));
+      for (const p of players) {
+        const slot = byMatch.get(p.match_id);
+        if (!slot) continue;
+        (p.team === 'A' ? slot.team_a_players : slot.team_b_players)
+          .push({ name: p.name, person_id: p.person_id });
+      }
+      res.json({
+        matches: matches.map(m => byMatch.get(m.match_id)),
+        latest_date: matches[0].match_date,
+      });
     } catch (err) { return fail(res, err); }
   });
 

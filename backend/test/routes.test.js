@@ -271,9 +271,13 @@ async function run() {
       && sess.json?.context_id === ctxId);
     const RATER_SESSION = sess.json.session_id;
 
-    // Single-use: redeeming the same token again → 401
+    // Reusable (revised 2026-06-11): redeeming the same valid token again
+    // succeeds and mints a NEW session (the link is the durable credential;
+    // single-use was the plain-HTTP mitigation, replaced by HTTPS).
     const reUse = await req(base, 'POST', '/api/session', { body: { token: RATER_TOKEN } });
-    check('single-use: token already used → 401', reUse.status === 401);
+    check('reusable: same token re-redeems → 201', reUse.status === 201, JSON.stringify(reUse.json));
+    check('reusable: re-redeem mints a fresh session id',
+      reUse.json?.session_id && reUse.json.session_id !== RATER_SESSION);
 
     // Expired token → 401
     const EXPIRED_TOKEN = 'tok-expired-zzz';

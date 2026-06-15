@@ -161,9 +161,13 @@ export function requireGlobalAdmin(req, res, next) {
 // single process). Tradeoff documented in SPEC_16 §"Open questions".
 const _sessions = new Map();
 
-// Default session TTL: 30 minutes from mint. Plenty for one card + a peer
-// pass on the field; short enough that a leaked session id is low-blast.
-const SESSION_TTL_MS = 30 * 60 * 1000;
+// Session TTL: long-lived now that we're on HTTPS (Tailscale Funnel). The
+// magic link is the durable identity credential (reusable — see redeemToken),
+// and players need to be able to rate peers at leisure over days/weeks, so a
+// 30-minute window is wrong. 1 year. The client also auto-re-redeems its stored
+// token if the in-memory store is lost on restart (see frontend _api.js), so an
+// expired/forgotten session self-heals without bothering the admin.
+const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
 function nowMs() { return Date.now(); }
 
@@ -177,13 +181,16 @@ function purgeExpired() {
 /**
  * Validate a magic-link `rating_token` and mint a fresh session.
  *
- * Token contract (single-use TTL — SPEC_16 §4):
+ * Token contract (REUSABLE TTL — revised 2026-06-11; was single-use in SPEC_16):
  *   - person.rating_token must equal the supplied token
  *   - person.token_expires_at must be NULL or in the future
- *   - person.token_used_at must be NULL (never redeemed before)
  *
- * On success: marks the token consumed (token_used_at = NOW), mints an
- * in-memory session, and returns the session payload.
+ * The link is now the player's durable identity credential: re-tapping it
+ * re-establishes a session on any device, and the client keeps the token to
+ * auto-re-redeem after a server restart. Single-use was the plain-HTTP
+ * mitigation (SPEC_16 §4 / docs/HTTPS_OPTIONS §5); HTTPS (Tailscale Funnel)
+ * replaces it, so we no longer consume `token_used_at` on redeem. A link can
+ * still be revoked/rotated by re-minting (issue_tokens) or setting expiry.
  *
  * Resolves the "default context" for the rater as the context they have a
  * `player` row in. If there are multiple, the caller must pass `context_id`
@@ -204,9 +211,6 @@ export async function redeemToken(token, { context_id } = {}) {
   if (!person) {
     return { ok: false, status: 401, error: 'invalid token' };
   }
-  if (person.token_used_at) {
-    return { ok: false, status: 401, error: 'token already used' };
-  }
   if (person.token_expires_at && new Date(person.token_expires_at).getTime() <= nowMs()) {
     return { ok: false, status: 401, error: 'token expired' };
   }
@@ -224,14 +228,15 @@ export async function redeemToken(token, { context_id } = {}) {
     chosenContextId = ctxRow?.context_id ?? null;
   }
 
-  // Mark token consumed (single-use). Done in the same transaction-less call;
-  // the worst-case race is two simultaneous redemptions both succeeding once,
-  // which is harmless — each gets a distinct session and the token is locked
-  // out for everyone afterwards.
-  await pool.query(
-    `UPDATE person SET token_used_at = CURRENT_TIMESTAMP WHERE person_id = $1`,
-    [person.person_id],
-  );
+  // Stamp first-seen for audit (proves the link reached the right phone), but
+  // do NOT block re-redemption — the token is reusable (see header). Only set
+  // it once so it records the first redemption time.
+  if (!person.token_used_at) {
+    await pool.query(
+      `UPDATE person SET token_used_at = CURRENT_TIMESTAMP WHERE person_id = $1`,
+      [person.person_id],
+    );
+  }
 
   const session_id = crypto.randomBytes(24).toString('hex');
   const session = {

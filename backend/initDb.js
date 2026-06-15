@@ -41,6 +41,12 @@ BEGIN
                   WHERE table_name='person' AND column_name='token_used_at') THEN
     ALTER TABLE person ADD COLUMN token_used_at TIMESTAMP;
   END IF;
+  -- Optional profile photo (one per person, shared across contexts). NULL =
+  -- show initials placeholder. Populated by the photo-upload flow.
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                  WHERE table_name='person' AND column_name='photo_url') THEN
+    ALTER TABLE person ADD COLUMN photo_url VARCHAR(512);
+  END IF;
 END$$;
 
 CREATE TABLE IF NOT EXISTS context (
