@@ -25,7 +25,7 @@ export default function Redeem() {
     return <div className="text-slate-400 text-center py-12">Signing you in…</div>;
   }
   if (state.phase === 'ok') {
-    return <Navigate to="/v2/me" replace />;
+    return <Navigate to="/v2/results" replace />;
   }
   if (state.phase === 'no-token') {
     return (
@@ -43,7 +43,7 @@ export default function Redeem() {
       <h1 className="text-2xl font-bold">That link didn’t work</h1>
       <p className="text-slate-400 text-sm">{state.error}</p>
       <p className="text-slate-500 text-xs">
-        Magic links are single-use and expire after 48 hours. Ask for a fresh one.
+        Ask your captain to re-send your personal link.
       </p>
     </div>
   );

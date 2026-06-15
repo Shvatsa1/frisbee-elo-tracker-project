@@ -15,7 +15,7 @@
  * is short-lived (~30 min) AND is bound to the in-memory store of the one
  * server process, so even a leaked session expires fast.
  */
-import api, { getSessionId, setSessionId, setActorId, setContextId } from './_api';
+import api, { getSessionId, setSessionId, setActorId, setContextId, setAuthToken } from './_api';
 
 const TOKEN_QUERY_PARAM = 't';
 const REDEEM_PATH_RE = /^\/r\/([A-Za-z0-9._\-]+)\/?$/;
@@ -61,6 +61,9 @@ export async function ensureSession() {
     setSessionId(data.session_id);
     setActorId(data.person_id);
     if (data.context_id != null) setContextId(data.context_id);
+    // Keep the (reusable) token so the client can silently re-redeem after a
+    // server restart — "forever" rating. Stored only after a successful redeem.
+    setAuthToken(token);
     stripTokenFromUrl();
     return data;
   } catch (err) {
@@ -72,4 +75,5 @@ export async function ensureSession() {
 
 export function logout() {
   setSessionId(null);
+  setAuthToken(null);
 }

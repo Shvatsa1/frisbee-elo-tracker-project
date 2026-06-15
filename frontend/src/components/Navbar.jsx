@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Users, Wand2, Menu, X, Star, ClipboardCheck, CreditCard, ThumbsUp } from 'lucide-react';
+import { Activity, Users, Wand2, Menu, X, Star, ClipboardCheck, CreditCard, ThumbsUp, CalendarDays } from 'lucide-react';
 import { getSessionId, isAdminView, setAdminView, setAdminKey } from '../pages/v2/_api';
 
 export default function Navbar() {
@@ -31,6 +31,7 @@ export default function Navbar() {
   //   player  → only when a magic-link session exists
   //   admin   → only when the device-local admin flag is set
   const publicItems = [
+    { path: '/v2/results',     label: 'Last Week',   icon: CalendarDays },
     { path: '/v2/leaderboard', label: 'Leaderboard', icon: Users },
   ];
   const playerItems = [

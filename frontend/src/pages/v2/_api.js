@@ -76,6 +76,19 @@ export function setAdminKey(k) {
   else localStorage.setItem('ultielo:adminKey', String(k));
 }
 
+// The player's durable magic-link token. Now that links are reusable (HTTPS),
+// we keep it so the client can silently re-redeem for a fresh session if the
+// in-memory server store is lost on restart — "forever" rating without the
+// admin re-sending links. Password-equivalent; safe under HTTPS.
+export function getAuthToken() {
+  return localStorage.getItem('ultielo:authToken') || null;
+}
+
+export function setAuthToken(t) {
+  if (t == null || t === '') localStorage.removeItem('ultielo:authToken');
+  else localStorage.setItem('ultielo:authToken', String(t));
+}
+
 api.interceptors.request.use((cfg) => {
   // Tier-0 admin header — attached only on writes; reads stay public.
   if (cfg.method && cfg.method.toLowerCase() !== 'get') {
@@ -91,6 +104,38 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
+// Self-healing sessions: if a request fails because the session is unknown or
+// expired (e.g. the backend restarted and lost its in-memory store), silently
+// re-redeem the stored reusable token for a fresh session and retry once. Uses
+// a bare axios call so it doesn't recurse through this interceptor.
+api.interceptors.response.use(
+  (resp) => resp,
+  async (error) => {
+    const cfg = error.config;
+    const status = error.response?.status;
+    const msg = error.response?.data?.error || '';
+    const sessionError = status === 401 && /session/i.test(msg);
+    const token = getAuthToken();
+    if (sessionError && token && cfg && !cfg._sessionRetried) {
+      cfg._sessionRetried = true;
+      try {
+        const { data } = await axios.post(
+          (api.defaults.baseURL || '') + '/session', { token });
+        setSessionId(data.session_id);
+        if (data.person_id != null) setActorId(data.person_id);
+        if (data.context_id != null) setContextId(data.context_id);
+        cfg.headers = { ...(cfg.headers || {}), 'X-Session-Id': data.session_id };
+        return api(cfg);
+      } catch (_reredeemFailed) {
+        // Token revoked/expired — fall through to the original error so the UI
+        // can prompt for a fresh link.
+        setSessionId(null);
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 export default api;
 
 // ---- typed-ish helpers (thin wrappers around §4) ----
@@ -99,6 +144,7 @@ export const v2 = {
   // public reads
   listContexts:   ()          => api.get('/contexts').then(r => r.data),
   leaderboard:    (ctxId)     => api.get(`/leaderboard?context_id=${ctxId}`).then(r => r.data),
+  matches:        (ctxId)     => api.get(`/matches?context_id=${ctxId}`).then(r => r.data),
   playerProfile:  (personId)  => api.get(`/player/${personId}`).then(r => r.data),
   match:          (matchId)   => api.get(`/match/${matchId}`).then(r => r.data),
   build:          (buildId)   => api.get(`/build/${buildId}`).then(r => r.data),

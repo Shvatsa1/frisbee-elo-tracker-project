@@ -50,3 +50,6 @@ Thumbs.db
 # Working session notes (not project code)
 session_logs/
 **/session_logs/
+
+# v2 test log artifact
+backend/utest.log

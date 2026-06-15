@@ -14,6 +14,7 @@ import V2PlayerProfile from './pages/v2/PlayerProfile';
 import V2AdminRating from './pages/v2/AdminRating';
 import V2Builder from './pages/v2/Builder';
 import V2Survey from './pages/v2/Survey';
+import V2Results from './pages/v2/Results';
 
 // SPEC_16 — player-facing magic-link flow.
 import V2Redeem from './pages/v2/Redeem';
@@ -27,11 +28,10 @@ function App() {
         <Navbar />
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
-            {/* Root → v2 leaderboard. The v1 Dashboard hits v1 endpoints that no
-                longer exist in v2 (it fails with "Failed to load data"), so the
-                v2 leaderboard is the real home. v1 routes stay mounted below for
-                safety but are not surfaced (see Navbar). */}
-            <Route path="/" element={<Navigate to="/v2/leaderboard" replace />} />
+            {/* Root → v2 "Last Week" results, the player home (per the landing
+                redesign). v1 Dashboard hits dead v1 endpoints; v1 routes stay
+                mounted below for safety but are not surfaced (see Navbar). */}
+            <Route path="/" element={<Navigate to="/v2/results" replace />} />
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerProfile />} />
             <Route path="/gameday" element={<Gameday />} />
@@ -40,7 +40,8 @@ function App() {
             <Route path="/matches/new" element={<MatchCreation />} />
 
             {/* v2 routes */}
-            <Route path="/v2"                       element={<Navigate to="/v2/leaderboard" replace />} />
+            <Route path="/v2"                       element={<Navigate to="/v2/results" replace />} />
+            <Route path="/v2/results"               element={<V2Results />} />
             <Route path="/v2/leaderboard"           element={<V2Leaderboard />} />
             <Route path="/v2/profile/:person_id"    element={<V2PlayerProfile />} />
             <Route path="/v2/admin-rating"          element={<V2AdminRating />} />

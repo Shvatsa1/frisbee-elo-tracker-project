@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { v2 } from './_api.js';
+import PlayerCard from './PlayerCard.jsx';
 
 export default function PlayerProfile() {
   const { person_id } = useParams();
@@ -35,26 +36,7 @@ export default function PlayerProfile() {
 
       <div className="grid md:grid-cols-2 gap-4">
         {players.map(p => (
-          <div key={p.player_id} className="glass-panel p-5">
-            <div className="flex justify-between items-baseline mb-3">
-              <h3 className="font-bold">
-                <Link to={`/v2/leaderboard?context_id=${p.context_id}`} className="hover:text-primary">
-                  {p.context_name}
-                </Link>
-              </h3>
-              <span className="text-xs text-slate-500 uppercase">{p.context_kind}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <Stat label="Headline" value={p.headline_scalar} accent />
-              <Stat label="Offence"  value={p.offence_skill} />
-              <Stat label="Defence"  value={p.defence_skill} />
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center mt-3 text-xs text-slate-400">
-              <div>{p.total_games ?? 0} games</div>
-              <div>{p.n_peers ?? 0} peer ratings</div>
-              <div>{p.n_results ?? 0} match results</div>
-            </div>
-          </div>
+          <PlayerCard key={p.player_id} name={person.name} photoUrl={person.photo_url} player={p} />
         ))}
       </div>
 
@@ -88,17 +70,6 @@ export default function PlayerProfile() {
           ))}
         </ul>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, accent }) {
-  return (
-    <div>
-      <div className={`text-2xl font-bold ${accent ? 'text-accent' : 'text-slate-200'}`}>
-        {value != null ? Math.round(value) : '—'}
-      </div>
-      <div className="text-xs text-slate-500">{label}</div>
     </div>
   );
 }
