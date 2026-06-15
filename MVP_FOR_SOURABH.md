@@ -1,27 +1,34 @@
 # UltiElo v2 — MVP walkthrough for Sourabh
 
-**From:** Shantanu · **Date:** 2026-06-09 · **Branch:** `ultielo-v2` (nothing pushed yet — local only)
-**Purpose:** get you (Sourabh, who built v1) up to speed on the v2 rebuild, agree the data model, and lock the handful of decisions only you/we can make — before Wednesday minis (2026-06-10).
+**From:** Shantanu · **Date:** 2026-06-15 · **Branch:** `ultielo-v2` on my fork (`github.com/Shvatsa1/frisbee-elo-tracker-project`); not opened as a PR into your repo yet.
+**Purpose:** get you (Sourabh, who built v1) up to speed on the v2 rebuild, agree the data model, and lock the handful of decisions only you/we can make — before next minis.
+
+> **TL;DR for the read:** v1 on `159.89.160.51:80` is **untouched and stays the public site** until you sign off. v2 is live in parallel at **`https://ultielo.taildd7ac1.ts.net/v2/results`** behind Tailscale Funnel HTTPS (free, no domain) — only people I share a magic link with land there. Six minis games from 2026-06-04 are already imported and the leaderboard/results reflect them. Open it, click around, and tell me what looks wrong.
 
 ---
 
-## 0. STATE AT HANDOVER (2026-06-09, end of day)
+## 0. STATE AT HANDOVER (2026-06-15)
 
-**What's built and verified working:**
-- Full v2 schema (person/player/context split, skill blend, builder, match lifecycle, FIFA card, tokens).
-- **Player Rating (0–100) decoupled from Elo (0–2500).** Rating = human judgement (admin + self + peer); Elo accrues from match results. **Team builder balances on `0.5·rating + 0.5·(Elo÷25)`** (weights tunable per build). Verified: a 14-player build produced two teams at avg metric 46.6, spread 0.22.
-- **Peer rating via the website is implemented** (SPEC-16): magic-link login (`/api/session` + `Redeem.jsx`), self FIFA card (`MyCard.jsx` → `/api/me/card`), sparse teammate rating (`RateTeammates.jsx` → `/api/rate`, 5-tier buckets → 90/70/50/30/10), single-use/TTL tokens, identity-based dedup (not IP), `context.open_rating` flag to relax peer eligibility, one-vote-per-week overwrite. Token issuance CLI: `scripts/issue_tokens.js`.
-- **Tests: 8 suites, 202 assertions, all green via `npm test`** (schema 30 · skill 52 · elo 13 · builder 18 · routes 65 · export 22 · import 11 · tokens 11). The serial runner was hardened (each suite boots Postgres on a free ephemeral port in a unique `.pgdata-<pid>` dir, retried teardown) — it now completes in one shot on Windows.
-- **v1/v2 both on the IP (staged):** plan + artifacts to serve the new v2 on `159.89.160.51:8080` *alongside* the untouched v1 on :80, with a link from the old site → `DEPLOY_V2.md` + `docker-compose.v2.yml` + `frontend/Dockerfile.prod` + `nginx.v2.conf`. **Not deployed** — gated on a conscious VM push (1 GB RAM / 7pm trading bot → add swap first).
-- 44 v1 players ported + admin-rated (0–100) into a persistent local DB (`backend/.localdb`, via `node scripts/seed_local.js`).
-- **Bug fixed today:** match-confirm was feeding the 0–100 *rating* into the Elo engine instead of real Elo (a pre-decoupling leftover) — would have collapsed Elo toward ~50 on the first confirmed game. Now reads `player_statistics_cache.current_elo`.
+**What's live and verified working:**
+- **v2 deployed on the VM alongside untouched v1.** V1 on `:80` (your original). V2 on `:8080` + Tailscale Funnel HTTPS at `https://ultielo.taildd7ac1.ts.net`. Separate DB (`frisbee_elo_v2`), separate compose stack (`docker-compose.v2.yml`). VM checkout `/root/ultielo-v2`. V1 DB backed up: `/root/v1_db_backup_*.sql`.
+- **Full v2 schema** (person/player/context split, skill blend, builder, match lifecycle, FIFA card, tokens, photo_url).
+- **Player Rating (0–100) decoupled from Elo (0–2500).** Rating = human judgement (admin + self + peer); Elo accrues from match results. **Team builder balances on `0.5·rating + 0.5·(Elo÷25)`** (weights tunable). Verified: a 14-player build produced two teams at avg metric 46.6, spread 0.22.
+- **6 v1 minis games (2026-06-04) imported** into v2 via `backend/scripts/import_v1_games.js` (idempotent, mirrors confirm-flow exactly): fresh Elo recomputed from 1000 baseline; Team D (3-0) lands at 1055.4 Elo. Visible on the new landing page.
+- **Landing page** (`/v2/results`): Last Week shown by default — team-vs-team rosters, winner accent, players link to FIFA profile cards. Buttons: Rate Yourself / Rate Teammates / Leaderboard.
+- **Passwordless magic-link auth (forever sessions).** Magic link IS the login — reusable, 48h to first click, then a **1-year session** that self-heals on backend restart (the client silently re-redeems the stored token on any 401). Token issuance: `backend/scripts/issue_tokens.js --context 1 --base-url <funnel-url>`. 44 fresh links minted today, ready for WhatsApp distribution.
+- **Peer rating always-on.** Backed by `context.open_rating=TRUE` + session identity (no eligibility gate). Rating integrity enforced server-side on the authenticated `person_id` (5-tier buckets → 90/70/50/30/10, identity-based dedup, trimmed-mean aggregation, self-weight decay, one row per (rater, ratee) upsert).
+- **Admin / player gating.** Frontend Navbar role-buckets (`publicItems` / `playerItems` / `adminItems`) keyed by device-local `ultielo:adminView`. Admins unlock with a one-time URL `?admin=1&key=<secret>` that sets localStorage + strips from URL. Backend writes additionally require `X-Admin-Key` (constant-time compare; no-op if env unset). Players never see admin tabs; an attacker who sets the localStorage flag still gets 403 on writes.
+- **FIFA-style PlayerCard component**, rendered on PlayerProfile (per context): photo or initials, color-coded rating badge, OFF/DEF + ELO row, six attribute bars (THR/CUT/HAN/DEF/SPD/END), W/L footer. Display options `showElo/showRating/showAttrs`.
+- **Tests: 8 suites, all green** including the reusable-token assertion flip and the new import-flow suite.
+- **Bug fixed earlier:** match-confirm was feeding the 0–100 *rating* into the Elo engine instead of real Elo. Now reads `player_statistics_cache.current_elo` correctly.
 
 **What's NOT done (open for you / next session):**
+- **Photo upload UI** — `photo_url` column exists, no upload flow yet (fast-follow; file storage TBD — S3 vs local volume).
 - **Name→roster resolver** for game day — `/api/build` takes player_ids; there's no "paste attendance names → match to roster → flag unknowns" step yet. This is the main game-day gap.
-- **HTTPS** — peer rating tokens are sniffable on plain HTTP; mitigated by single-use/TTL tokens, but real fix is HTTPS (recommend Tailscale Funnel, no domain). `ENABLE_PEER_RATING` legacy flag still gates the old `/api/skill/peer`; the new `/api/rate` is gated by `open_rating` + session instead.
-- **WhatsApp mood poll: shelved** (we chose to just build peer rating). `PLAYER_INPUT_MOOD_POLL.md` kept for reference only.
-- **Not committed, not deployed** — all local on `ultielo-v2`; live VM DB untouched.
-- Per-session minis preferences (today's cut/handle, O/D, availability) — deferred to a later spec.
+- **"Try v2 →" button on v1** — players who land on v1 don't yet know v2 exists. Intentional until you sign off; snippet in `DEPLOY_V2.md` when we're ready.
+- **WhatsApp mood poll: shelved**; `PLAYER_INPUT_MOOD_POLL.md` kept for reference only.
+- **PR fork→yours** — I'll open it once you've poked around and we're aligned on the data model.
+- Per-session minis preferences (today's cut/handle, O/D, availability) — deferred to a later spec (SPEC_17 drafted).
 
 **Spec of record for the player-input layer:** `Agent_for_Anti_Gravity/specs/SPEC_16_ultielo_player_inputs.md`.
 

@@ -53,3 +53,6 @@ session_logs/
 
 # v2 test log artifact
 backend/utest.log
+
+# Magic-link mints — token material, NEVER commit
+magic_links_*.txt
