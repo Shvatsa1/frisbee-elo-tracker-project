@@ -16,12 +16,12 @@ import { v2 } from './_api.js';
 import { ensureSession } from './_token.js';
 
 const ATTRIBUTES = [
-  { key: 'throwing',  label: 'Throwing',  hint: 'flicks/backhands/scoobers/hammers' },
-  { key: 'cutting',   label: 'Cutting',   hint: 'reading defenders, getting open downfield' },
-  { key: 'handling',  label: 'Handling',  hint: 'reset / under control / dump movement' },
-  { key: 'defense',   label: 'Defense',   hint: 'D blocks, person & zone, on-disc pressure' },
-  { key: 'speed',     label: 'Speed',     hint: 'top-end + first-step burst' },
-  { key: 'endurance', label: 'Endurance', hint: 'late-game legs, double points' },
+  { key: 'throwing',  label: 'Throws — variety',     hint: 'flicks, backhands, scoobers, hammers' },
+  { key: 'cutting',   label: 'Cutting',              hint: 'reading defenders, getting open downfield' },
+  { key: 'handling',  label: 'Handling — overall',   hint: 'accuracy, decision-making, dump / reset' },
+  { key: 'defense',   label: 'Defense',              hint: 'D blocks, person & zone, on-disc pressure' },
+  { key: 'speed',     label: 'Speed',                hint: 'top-end + first-step burst' },
+  { key: 'endurance', label: 'Endurance',            hint: 'late-game legs, double points' },
 ];
 
 const POSITIONS  = ['handler', 'cutter', 'hybrid'];
@@ -136,7 +136,7 @@ export default function MyCard() {
       </section>
 
       <section className="glass-panel p-5 space-y-4">
-        <h2 className="text-lg font-semibold">FIFA card</h2>
+        <h2 className="text-lg font-semibold">Attribute-wise rating</h2>
         {ATTRIBUTES.map(a => (
           <TierRow
             key={a.key}
