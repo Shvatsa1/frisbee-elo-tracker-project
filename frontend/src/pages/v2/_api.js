@@ -90,13 +90,12 @@ export function setAuthToken(t) {
 }
 
 api.interceptors.request.use((cfg) => {
-  // Tier-0 admin header — attached only on writes; reads stay public.
-  if (cfg.method && cfg.method.toLowerCase() !== 'get') {
-    const id = getActorId();
-    if (id) cfg.headers['X-Person-Id'] = String(id);
-    const ak = getAdminKey();
-    if (ak) cfg.headers['X-Admin-Key'] = ak;
-  }
+  // Tier-0 admin headers — attached on every request when set. Public-read
+  // routes ignore them; admin GET routes (e.g. /admin/events) need them.
+  const id = getActorId();
+  if (id) cfg.headers['X-Person-Id'] = String(id);
+  const ak = getAdminKey();
+  if (ak) cfg.headers['X-Admin-Key'] = ak;
   // SPEC_16: session header — attached on EVERY request (the /api/me reads
   // need it too). Routes that don't require a session simply ignore it.
   const sid = getSessionId();
