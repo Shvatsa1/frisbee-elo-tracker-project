@@ -253,6 +253,23 @@ export async function redeemToken(token, { context_id } = {}) {
 }
 
 /**
+ * Mint a session for a given person without a token round-trip. Used by the
+ * event self-signup flow, where a new person row + magic-link token has just
+ * been created and we want to log them straight in so they can sign up to the
+ * event in the same click.
+ */
+export function mintSessionForPerson({ person_id, name, context_id = null }) {
+  const session_id = crypto.randomBytes(24).toString('hex');
+  const session = {
+    session_id, person_id, name, context_id,
+    expires_at: nowMs() + SESSION_TTL_MS,
+  };
+  _sessions.set(session_id, session);
+  purgeExpired();
+  return session;
+}
+
+/**
  * `resolveRater` middleware — populate req.rater from `X-Session-Id`.
  * Returns 401 on missing / unknown / expired session.
  */

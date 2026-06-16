@@ -7,16 +7,17 @@
  */
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Users, Calendar, MapPin, Clock } from 'lucide-react';
-import { v2 } from './_api.js';
-import { getSessionId } from './_api.js';
+import { Users, Calendar, MapPin } from 'lucide-react';
+import api, { v2, getSessionId, setSessionId, setActorId, setContextId, setAuthToken } from './_api.js';
 
 export default function EventRegister() {
   const { share_token } = useParams();
   const [ev, setEv] = useState(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const hasSession = !!getSessionId();
+  const [hasSession, setHasSession] = useState(!!getSessionId());
+  const [showSignup, setShowSignup] = useState(false);
+  const [draft, setDraft] = useState({ name: '', phone: '' });
 
   async function refresh() {
     try { setEv(await v2.publicEvent(share_token)); }
@@ -30,6 +31,28 @@ export default function EventRegister() {
     catch (e) { setErr(e?.response?.data?.error || e.message); }
     finally { setBusy(false); }
   }
+  async function onSelfSignup() {
+    if (!draft.name.trim() || !draft.phone.trim()) {
+      setErr('Name and phone are both required.');
+      return;
+    }
+    setBusy(true); setErr('');
+    try {
+      const { data } = await api.post(`/e/${share_token}/signup-new`, {
+        name: draft.name.trim(), phone: draft.phone.trim(),
+      });
+      setSessionId(data.session_id);
+      setActorId(data.person_id);
+      if (data.context_id) setContextId(data.context_id);
+      if (data.rating_token) setAuthToken(data.rating_token);
+      setHasSession(true);
+      setShowSignup(false);
+      await refresh();
+    } catch (e) {
+      setErr(e?.response?.data?.error || e.message);
+    } finally { setBusy(false); }
+  }
+
   async function onWithdraw() {
     setBusy(true); setErr('');
     try { await v2.withdrawEvent(share_token); await refresh(); }
@@ -76,9 +99,60 @@ export default function EventRegister() {
         </div>
       )}
 
-      {!hasSession && (
-        <div className="bg-slate-800/40 border border-white/10 rounded-lg p-4 text-sm text-slate-300">
-          To sign up, tap your personal link from WhatsApp.
+      {!hasSession && ev.status === 'open' && (
+        <div className="glass-panel p-5 space-y-3">
+          <div className="text-sm text-slate-300">
+            If you've got a personal link from WhatsApp, tap that — it's the
+            fastest way in. Otherwise sign yourself up below.
+          </div>
+          {!showSignup ? (
+            <button
+              onClick={() => setShowSignup(true)}
+              className="btn-secondary w-full"
+            >
+              New here? Sign up
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <label className="space-y-1 block">
+                <span className="text-xs text-slate-400">Your name</span>
+                <input
+                  className="input-field"
+                  value={draft.name}
+                  onChange={e => setDraft({ ...draft, name: e.target.value })}
+                  placeholder="e.g. Priya Sharma"
+                />
+              </label>
+              <label className="space-y-1 block">
+                <span className="text-xs text-slate-400">Phone (so the admin can reach you)</span>
+                <input
+                  className="input-field"
+                  value={draft.phone}
+                  onChange={e => setDraft({ ...draft, phone: e.target.value })}
+                  placeholder="e.g. +91 98765 43210"
+                />
+              </label>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={onSelfSignup}
+                  disabled={busy}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                >
+                  {busy ? '…' : 'Sign me up'}
+                </button>
+                <button
+                  onClick={() => { setShowSignup(false); setErr(''); }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className="text-xs text-slate-500">
+                We only use your phone so the admin can WhatsApp you. It's never shown to other players.
+              </div>
+              {err && <div className="text-red-400 text-sm">{err}</div>}
+            </div>
+          )}
         </div>
       )}
 

@@ -33,6 +33,7 @@ import {
   resolveRater,
   redeemToken,
   peekRater,
+  mintSessionForPerson,
 } from './authority.js';
 import {
   newShareToken,
@@ -41,6 +42,7 @@ import {
   promoteEvent,
   getPublicEvent,
   getAdminRoster,
+  selfSignupForEvent,
 } from './eventService.js';
 import {
   validateCard,
@@ -1038,6 +1040,35 @@ export function createApp() {
       const result = await registerForEvent(ev.event_id, req.rater.person_id);
       if (!result.ok) return res.status(result.status).json({ error: result.error });
       res.status(201).json(result.registration);
+    } catch (err) { return fail(res, err); }
+  });
+
+  // POST /api/e/:share_token/signup-new — self-service signup for someone
+  // without a magic link. Creates a person row (or matches by phone) + mints
+  // a durable token + registers them to the event + returns a fresh session
+  // so the client logs in straight away.
+  app.post('/api/e/:share_token/signup-new', async (req, res) => {
+    try {
+      const result = await selfSignupForEvent({
+        share_token: req.params.share_token,
+        name: req.body?.name,
+        phone: req.body?.phone,
+      });
+      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      const session = mintSessionForPerson({
+        person_id: result.person.person_id,
+        name: result.person.name,
+        context_id: result.context_id,
+      });
+      res.status(201).json({
+        session_id: session.session_id,
+        person_id: result.person.person_id,
+        name: result.person.name,
+        context_id: result.context_id,
+        rating_token: result.person.rating_token,
+        registration: result.registration,
+        created_person: result.created_person,
+      });
     } catch (err) { return fail(res, err); }
   });
 

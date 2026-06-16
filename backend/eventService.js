@@ -185,6 +185,64 @@ export async function promoteEvent(event_id) {
 }
 
 /**
+ * Self-service signup for someone who doesn't have a magic link yet
+ * (e.g. friend-of-friend who saw the WA share). Creates a `person` row if
+ * the phone is new, mints a durable rating_token (so they can log back in
+ * later), and registers them to the event in one shot.
+ *
+ * Idempotency:
+ *   - Phone match → re-use the existing person (no duplicate). Existing
+ *     rating_token is preserved; we never rotate.
+ *   - Already registered → return the existing registration (no double row).
+ */
+export async function selfSignupForEvent({ share_token, name, phone }) {
+  const cleanName = (name || '').trim();
+  const cleanPhone = (phone || '').trim();
+  if (!cleanName) return { ok: false, status: 400, error: 'name required' };
+  if (!cleanPhone || cleanPhone.length < 6) {
+    return { ok: false, status: 400, error: 'phone required' };
+  }
+
+  const ev = (await pool.query(
+    `SELECT event_id, context_id, status FROM event WHERE share_token = $1`,
+    [share_token],
+  )).rows[0];
+  if (!ev) return { ok: false, status: 404, error: 'event not found' };
+  if (ev.status !== 'open') {
+    return { ok: false, status: 409, error: `event is ${ev.status}` };
+  }
+
+  // Phone is UNIQUE — match by phone first to avoid duplicates.
+  let person = (await pool.query(
+    `SELECT person_id, name, rating_token FROM person WHERE phone = $1`,
+    [cleanPhone],
+  )).rows[0];
+
+  let createdPerson = false;
+  if (!person) {
+    const ratingToken = crypto.randomBytes(24).toString('hex');
+    person = (await pool.query(
+      `INSERT INTO person (name, phone, rating_token, token_expires_at)
+            VALUES ($1, $2, $3, NULL)
+            RETURNING person_id, name, rating_token`,
+      [cleanName, cleanPhone, ratingToken],
+    )).rows[0];
+    createdPerson = true;
+  }
+
+  const reg = await registerForEvent(ev.event_id, person.person_id);
+  if (!reg.ok) return reg;
+
+  return {
+    ok: true,
+    person,
+    context_id: ev.context_id,
+    registration: reg.registration,
+    created_person: createdPerson,
+  };
+}
+
+/**
  * Public-safe event view by share_token. No phone numbers, no other-player
  * details unless the caller is registered (then we surface their position).
  */
