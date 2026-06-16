@@ -195,7 +195,7 @@ export async function promoteEvent(event_id) {
  *     rating_token is preserved; we never rotate.
  *   - Already registered → return the existing registration (no double row).
  */
-export async function selfSignupForEvent({ share_token, name, phone }) {
+export async function selfSignupForEvent({ share_token, name, phone, confirm_new = false }) {
   const cleanName = (name || '').trim();
   const cleanPhone = (phone || '').trim();
   if (!cleanName) return { ok: false, status: 400, error: 'name required' };
@@ -217,6 +217,29 @@ export async function selfSignupForEvent({ share_token, name, phone }) {
     `SELECT person_id, name, rating_token FROM person WHERE phone = $1`,
     [cleanPhone],
   )).rows[0];
+
+  // Insurance against orphaning a known player's Elo history: if no phone
+  // match but the *name* normalises to an existing player, ask the user to
+  // confirm they're really new. Skipped when confirm_new=true (user chose
+  // "yes, I'm a different person" in the frontend prompt).
+  if (!person && !confirm_new) {
+    const normalised = cleanName.toLowerCase().replace(/\s+/g, ' ');
+    const nameHit = (await pool.query(
+      `SELECT person_id, name FROM person
+        WHERE LOWER(REGEXP_REPLACE(name, '\\s+', ' ', 'g')) = $1
+        LIMIT 1`,
+      [normalised],
+    )).rows[0];
+    if (nameHit) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'name_conflict',
+        existing_name: nameHit.name,
+        hint: `A player named "${nameHit.name}" already exists. If that's you, tap your personal link from WhatsApp instead — it preserves your rating history. If you're a different person with the same name, confirm to continue.`,
+      };
+    }
+  }
 
   let createdPerson = false;
   if (!person) {

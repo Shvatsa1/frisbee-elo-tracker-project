@@ -1053,8 +1053,14 @@ export function createApp() {
         share_token: req.params.share_token,
         name: req.body?.name,
         phone: req.body?.phone,
+        confirm_new: !!req.body?.confirm_new,
       });
-      if (!result.ok) return res.status(result.status).json({ error: result.error });
+      if (!result.ok) {
+        const body = { error: result.error };
+        if (result.existing_name) body.existing_name = result.existing_name;
+        if (result.hint) body.hint = result.hint;
+        return res.status(result.status).json(body);
+      }
       const session = mintSessionForPerson({
         person_id: result.person.person_id,
         name: result.person.name,

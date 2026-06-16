@@ -31,7 +31,7 @@ export default function EventRegister() {
     catch (e) { setErr(e?.response?.data?.error || e.message); }
     finally { setBusy(false); }
   }
-  async function onSelfSignup() {
+  async function onSelfSignup(confirm_new = false) {
     if (!draft.name.trim() || !draft.phone.trim()) {
       setErr('Name and phone are both required.');
       return;
@@ -39,7 +39,9 @@ export default function EventRegister() {
     setBusy(true); setErr('');
     try {
       const { data } = await api.post(`/e/${share_token}/signup-new`, {
-        name: draft.name.trim(), phone: draft.phone.trim(),
+        name: draft.name.trim(),
+        phone: draft.phone.trim(),
+        confirm_new,
       });
       setSessionId(data.session_id);
       setActorId(data.person_id);
@@ -49,7 +51,16 @@ export default function EventRegister() {
       setShowSignup(false);
       await refresh();
     } catch (e) {
-      setErr(e?.response?.data?.error || e.message);
+      const body = e?.response?.data;
+      if (body?.error === 'name_conflict') {
+        setErr('');
+        const proceed = window.confirm(
+          `${body.hint}\n\nProceed as a different player with the same name?`,
+        );
+        if (proceed) return onSelfSignup(true);
+        return;
+      }
+      setErr(body?.error || e.message);
     } finally { setBusy(false); }
   }
 
