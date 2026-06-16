@@ -96,30 +96,30 @@ export default function AdminEvents() {
         <div className="grid sm:grid-cols-2 gap-3 text-sm">
           <label className="space-y-1">
             <span className="text-xs text-slate-400">Title</span>
-            <input className="input w-full" value={draft.title}
+            <input className="input-field" value={draft.title}
               onChange={e => setDraft({ ...draft, title: e.target.value })}
-              placeholder="Wednesday Minis — 17 Jun" />
+              placeholder="e.g. Wednesday Minis" />
           </label>
           <label className="space-y-1">
             <span className="text-xs text-slate-400">Date</span>
-            <input type="date" className="input w-full" value={draft.event_date}
+            <input type="date" className="input-field" value={draft.event_date}
               onChange={e => setDraft({ ...draft, event_date: e.target.value })} />
           </label>
           <label className="space-y-1">
             <span className="text-xs text-slate-400">Time</span>
-            <input className="input w-full" value={draft.event_time}
+            <input className="input-field" value={draft.event_time}
               onChange={e => setDraft({ ...draft, event_time: e.target.value })}
-              placeholder="7:00 PM" />
+              placeholder="e.g. 7:00 PM" />
           </label>
           <label className="space-y-1">
             <span className="text-xs text-slate-400">Location</span>
-            <input className="input w-full" value={draft.location}
+            <input className="input-field" value={draft.location}
               onChange={e => setDraft({ ...draft, location: e.target.value })}
-              placeholder="Powai" />
+              placeholder="e.g. Mahim" />
           </label>
           <label className="space-y-1">
             <span className="text-xs text-slate-400">Capacity</span>
-            <input type="number" min="1" className="input w-full" value={draft.capacity}
+            <input type="number" min="1" className="input-field" value={draft.capacity}
               onChange={e => setDraft({ ...draft, capacity: e.target.value })} />
           </label>
         </div>
