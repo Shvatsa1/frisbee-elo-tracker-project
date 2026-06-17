@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Users, Wand2, Menu, X, Star, ClipboardCheck, CreditCard, ThumbsUp, CalendarDays } from 'lucide-react';
+import { Activity, Users, Wand2, Menu, X, Star, ClipboardCheck, CreditCard, ThumbsUp, CalendarDays, UserPlus } from 'lucide-react';
 import { getSessionId, isAdminView, setAdminView, setAdminKey } from '../pages/v2/_api';
 
 export default function Navbar() {
@@ -45,9 +45,13 @@ export default function Navbar() {
     { path: '/v2/survey/0',     label: 'Survey',        icon: ClipboardCheck },
   ];
 
+  // Logged-out visitors get a "Join" CTA (website self-signup); logged-in
+  // players get their player tabs instead.
+  const joinItem = { path: '/v2/join', label: 'Join', icon: UserPlus };
+
   const navItems = [
     ...publicItems,
-    ...(loggedIn ? playerItems : []),
+    ...(loggedIn ? playerItems : [joinItem]),
     ...(admin ? adminItems : []),
   ];
 

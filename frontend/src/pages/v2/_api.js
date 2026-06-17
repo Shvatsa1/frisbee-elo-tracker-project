@@ -167,6 +167,9 @@ export const v2 = {
   ratePeer:       (subject_player_id, tier) =>
     api.post('/rate', { subject_player_id, tier }).then(r => r.data),
 
+  // website self-signup (no event link / no magic link needed)
+  join:           (body)      => api.post('/join', body).then(r => r.data),
+
   // SPEC_17 events ----------------------------------------------------
   openEvent:      (ctxId)     => api.get(`/event/open?context_id=${ctxId}`).then(r => r.data),
   publicEvent:    (token)     => api.get(`/e/${token}`).then(r => r.data),

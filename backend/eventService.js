@@ -185,31 +185,23 @@ export async function promoteEvent(event_id) {
 }
 
 /**
- * Self-service signup for someone who doesn't have a magic link yet
- * (e.g. friend-of-friend who saw the WA share). Creates a `person` row if
- * the phone is new, mints a durable rating_token (so they can log back in
- * later), and registers them to the event in one shot.
+ * Validate name+phone, dedupe by phone, guard against colliding with an
+ * existing player's name (to avoid orphaning their Elo history), and create a
+ * new `person` with a durable rating_token if none matches. Shared by event
+ * self-signup and the website "join" flow.
  *
- * Idempotency:
- *   - Phone match → re-use the existing person (no duplicate). Existing
- *     rating_token is preserved; we never rotate.
- *   - Already registered → return the existing registration (no double row).
+ * Returns {ok:true, person, created_person} or a conflict/validation error
+ * {ok:false, status, error[, existing_name, hint]}.
+ *
+ * Idempotency: a phone match re-uses the existing person (no duplicate); the
+ * existing rating_token is preserved (never rotated).
  */
-export async function selfSignupForEvent({ share_token, name, phone, confirm_new = false }) {
+export async function resolveOrCreatePerson({ name, phone, confirm_new = false }) {
   const cleanName = (name || '').trim();
   const cleanPhone = (phone || '').trim();
   if (!cleanName) return { ok: false, status: 400, error: 'name required' };
   if (!cleanPhone || cleanPhone.length < 6) {
     return { ok: false, status: 400, error: 'phone required' };
-  }
-
-  const ev = (await pool.query(
-    `SELECT event_id, context_id, status FROM event WHERE share_token = $1`,
-    [share_token],
-  )).rows[0];
-  if (!ev) return { ok: false, status: 404, error: 'event not found' };
-  if (ev.status !== 'open') {
-    return { ok: false, status: 409, error: `event is ${ev.status}` };
   }
 
   // Phone is UNIQUE — match by phone first to avoid duplicates.
@@ -252,16 +244,80 @@ export async function selfSignupForEvent({ share_token, name, phone, confirm_new
     )).rows[0];
     createdPerson = true;
   }
+  return { ok: true, person, created_person: createdPerson };
+}
 
-  const reg = await registerForEvent(ev.event_id, person.person_id);
+/**
+ * Make `person` a player in `context_id` (idempotent). Returns the player_id.
+ * This is what turns a bare `person` into a real, rateable/buildable
+ * participant in the context.
+ */
+export async function ensurePlayerInContext(person_id, context_id) {
+  const row = (await pool.query(
+    `INSERT INTO player (person_id, context_id) VALUES ($1, $2)
+       ON CONFLICT (person_id, context_id) DO UPDATE SET person_id = EXCLUDED.person_id
+       RETURNING player_id`,
+    [person_id, context_id],
+  )).rows[0];
+  return row.player_id;
+}
+
+/**
+ * Website "join": a brand-new person signs themselves up from the site itself
+ * (no event link and no admin-minted magic link needed). Creates/resolves the
+ * person and makes them a player in the context, so they immediately appear in
+ * the roster and can self-rate. Returns {ok, person, context_id,
+ * created_person} or a conflict.
+ */
+export async function joinContext({ context_id, name, phone, confirm_new = false }) {
+  const ctx = (await pool.query(
+    `SELECT context_id FROM context WHERE context_id = $1`, [context_id],
+  )).rows[0];
+  if (!ctx) return { ok: false, status: 404, error: 'context not found' };
+
+  const r = await resolveOrCreatePerson({ name, phone, confirm_new });
+  if (!r.ok) return r;
+
+  await ensurePlayerInContext(r.person.person_id, ctx.context_id);
+  return { ok: true, person: r.person, context_id: ctx.context_id, created_person: r.created_person };
+}
+
+/**
+ * Self-service signup for someone who doesn't have a magic link yet
+ * (e.g. friend-of-friend who saw the WA share). Creates a `person` row if the
+ * phone is new, mints a durable rating_token, makes them a player in the
+ * event's context, and registers them to the event in one shot.
+ *
+ * Idempotency:
+ *   - Phone match → re-use the existing person (no duplicate).
+ *   - Already registered → return the existing registration (no double row).
+ */
+export async function selfSignupForEvent({ share_token, name, phone, confirm_new = false }) {
+  const ev = (await pool.query(
+    `SELECT event_id, context_id, status FROM event WHERE share_token = $1`,
+    [share_token],
+  )).rows[0];
+  if (!ev) return { ok: false, status: 404, error: 'event not found' };
+  if (ev.status !== 'open') {
+    return { ok: false, status: 409, error: `event is ${ev.status}` };
+  }
+
+  const r = await resolveOrCreatePerson({ name, phone, confirm_new });
+  if (!r.ok) return r;
+
+  // Make them a real player in the event's context too — not just a bare
+  // event registration — so they're rateable / buildable.
+  await ensurePlayerInContext(r.person.person_id, ev.context_id);
+
+  const reg = await registerForEvent(ev.event_id, r.person.person_id);
   if (!reg.ok) return reg;
 
   return {
     ok: true,
-    person,
+    person: r.person,
     context_id: ev.context_id,
     registration: reg.registration,
-    created_person: createdPerson,
+    created_person: r.created_person,
   };
 }
 

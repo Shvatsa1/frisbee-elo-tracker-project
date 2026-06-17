@@ -24,6 +24,7 @@ import V2RateTeammates from './pages/v2/RateTeammates';
 // SPEC_17 minimum slice — events / signup
 import V2EventRegister from './pages/v2/EventRegister';
 import V2AdminEvents from './pages/v2/AdminEvents';
+import V2Join from './pages/v2/Join';
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
 
             {/* SPEC_16 — player-facing (session-authed via magic link) */}
             <Route path="/r/:token"                 element={<V2Redeem />} />
+            <Route path="/v2/join"                  element={<V2Join />} />
             <Route path="/v2/me"                    element={<V2MyCard />} />
             <Route path="/v2/me/rate"               element={<V2RateTeammates />} />
 

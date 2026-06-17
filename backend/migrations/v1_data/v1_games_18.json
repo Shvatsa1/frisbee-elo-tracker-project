@@ -1,0 +1,575 @@
+{
+  "_meta": {
+    "source_dump": "sourabh_dump_clean.sql",
+    "extracted_at": "2026-06-17T05:01:03.525Z",
+    "note": "Normalised snapshot of refreshed v1 frisbee_elo DB. player ids/names are V1 ids. Append-only reference data.",
+    "n_players": 55,
+    "n_matches": 18
+  },
+  "players": {
+    "1": "Dr. Partha Patil",
+    "2": "Harsh Sahgal",
+    "3": "Suryanshu Chauhan",
+    "4": "Tarishi Jain",
+    "5": "Antara",
+    "6": "Pranav Teki",
+    "7": "Zubin",
+    "8": "Mayur Parmar",
+    "9": "Divyansh Joshi",
+    "10": "Chinmay",
+    "11": "Prea Jain",
+    "12": "Vaibhav",
+    "13": "Kushal",
+    "14": "Divy",
+    "15": "Niddhi",
+    "16": "Vignesh",
+    "17": "Aviral",
+    "18": "Sanskar",
+    "19": "Plaksha",
+    "20": "Harshit",
+    "21": "Akhil",
+    "22": "Ayush",
+    "23": "Stefan",
+    "24": "Aryan",
+    "25": "Maaz",
+    "26": "Ahaan",
+    "27": "Shrestha",
+    "28": "Andre Gama",
+    "29": "Anmol Samat",
+    "30": "Karan Arora",
+    "31": "Saad",
+    "32": "Raghul",
+    "33": "Keshav",
+    "34": "Karthik",
+    "35": "Saarim",
+    "36": "Krishna Shah",
+    "37": "Shishir",
+    "38": "Sudhon",
+    "39": "Jastej",
+    "40": "Binson",
+    "41": "Sriram",
+    "42": "Vimalesan",
+    "43": "Shailesh",
+    "44": "Nikhil Perule",
+    "45": "Rishi",
+    "46": "Pooja Satish",
+    "47": "Sourabh Meena",
+    "48": "Mann",
+    "49": "Dhwani",
+    "50": "Chinmay S",
+    "51": "Tanush",
+    "52": "Daanish M",
+    "53": "Prabu Thiruppathy",
+    "54": "Mallika",
+    "55": "Milind"
+  },
+  "matches": [
+    {
+      "match_id": 13,
+      "date": "2026-05-20",
+      "location": "Pickup Wednesday",
+      "a_score": 5,
+      "b_score": 6,
+      "winner": "B",
+      "team_a_name": "Raikage",
+      "team_b_name": "Hokage",
+      "teamA": [
+        10,
+        49,
+        14,
+        50,
+        8,
+        24,
+        48
+      ],
+      "teamB": [
+        2,
+        4,
+        52,
+        6,
+        47,
+        11,
+        1
+      ]
+    },
+    {
+      "match_id": 14,
+      "date": "2026-05-20",
+      "location": "Pickup Wednesday",
+      "a_score": 8,
+      "b_score": 7,
+      "winner": "A",
+      "team_a_name": "Kazekage",
+      "team_b_name": "Mizukage",
+      "teamA": [
+        37,
+        41,
+        18,
+        51,
+        25,
+        19,
+        3
+      ],
+      "teamB": [
+        55,
+        21,
+        9,
+        53,
+        22,
+        13,
+        54
+      ]
+    },
+    {
+      "match_id": 15,
+      "date": "2026-05-20",
+      "location": "Pickup Wednesday",
+      "a_score": 7,
+      "b_score": 10,
+      "winner": "B",
+      "team_a_name": "Kazekage",
+      "team_b_name": "Hokage",
+      "teamA": [
+        37,
+        41,
+        18,
+        51,
+        25,
+        19,
+        3
+      ],
+      "teamB": [
+        52,
+        6,
+        47,
+        11,
+        1,
+        2,
+        4
+      ]
+    },
+    {
+      "match_id": 16,
+      "date": "2026-05-20",
+      "location": "Pickup Wednesday",
+      "a_score": 8,
+      "b_score": 5,
+      "winner": "A",
+      "team_a_name": "Raikage",
+      "team_b_name": "Mizukage",
+      "teamA": [
+        8,
+        24,
+        48,
+        10,
+        49,
+        14,
+        50
+      ],
+      "teamB": [
+        13,
+        54,
+        55,
+        21,
+        9,
+        53,
+        22
+      ]
+    },
+    {
+      "match_id": 17,
+      "date": "2026-05-20",
+      "location": "Pickup Wednesday",
+      "a_score": 14,
+      "b_score": 8,
+      "winner": "A",
+      "team_a_name": "Hokage",
+      "team_b_name": "Mizukage",
+      "teamA": [
+        52,
+        6,
+        47,
+        11,
+        1,
+        2,
+        4
+      ],
+      "teamB": [
+        9,
+        53,
+        22,
+        13,
+        54,
+        55,
+        21
+      ]
+    },
+    {
+      "match_id": 18,
+      "date": "2026-05-20",
+      "location": "Pickup Wednesday",
+      "a_score": 6,
+      "b_score": 7,
+      "winner": "B",
+      "team_a_name": "Raikage",
+      "team_b_name": "Kazekage",
+      "teamA": [
+        8,
+        24,
+        48,
+        10,
+        49,
+        14,
+        50
+      ],
+      "teamB": [
+        19,
+        3,
+        37,
+        41,
+        18,
+        51,
+        25
+      ]
+    },
+    {
+      "match_id": 1,
+      "date": "2026-06-03",
+      "location": "Pickup Wednesday",
+      "a_score": 9,
+      "b_score": 7,
+      "winner": "A",
+      "team_a_name": "Inarizaki",
+      "team_b_name": "Nekoma",
+      "teamA": [
+        12,
+        14,
+        8,
+        13,
+        10,
+        15,
+        9
+      ],
+      "teamB": [
+        19,
+        17,
+        21,
+        16,
+        20,
+        18,
+        22
+      ]
+    },
+    {
+      "match_id": 2,
+      "date": "2026-06-03",
+      "location": "Pickup Wednesday",
+      "a_score": 7,
+      "b_score": 9,
+      "winner": "B",
+      "team_a_name": "Karasuno",
+      "team_b_name": "Fukurodani",
+      "teamA": [
+        1,
+        5,
+        2,
+        6,
+        7,
+        4,
+        30
+      ],
+      "teamB": [
+        31,
+        23,
+        28,
+        3,
+        24,
+        29,
+        26,
+        27
+      ]
+    },
+    {
+      "match_id": 3,
+      "date": "2026-06-03",
+      "location": "Pickup Wednesday",
+      "a_score": 6,
+      "b_score": 8,
+      "winner": "B",
+      "team_a_name": "Nekoma",
+      "team_b_name": "Fukurodani",
+      "teamA": [
+        16,
+        20,
+        18,
+        22,
+        19,
+        17,
+        21
+      ],
+      "teamB": [
+        31,
+        26,
+        27,
+        23,
+        28,
+        3,
+        24,
+        29
+      ]
+    },
+    {
+      "match_id": 4,
+      "date": "2026-06-03",
+      "location": "Pickup Wednesday",
+      "a_score": 12,
+      "b_score": 7,
+      "winner": "A",
+      "team_a_name": "Karasuno",
+      "team_b_name": "Inarizaki",
+      "teamA": [
+        1,
+        5,
+        2,
+        6,
+        7,
+        4,
+        30
+      ],
+      "teamB": [
+        15,
+        9,
+        12,
+        14,
+        8,
+        13,
+        10
+      ]
+    },
+    {
+      "match_id": 5,
+      "date": "2026-06-03",
+      "location": "Pickup Wednesday",
+      "a_score": 6,
+      "b_score": 7,
+      "winner": "B",
+      "team_a_name": "Karasuno",
+      "team_b_name": "Nekoma",
+      "teamA": [
+        4,
+        30,
+        1,
+        5,
+        2,
+        6,
+        7
+      ],
+      "teamB": [
+        17,
+        21,
+        16,
+        20,
+        18,
+        22,
+        19
+      ]
+    },
+    {
+      "match_id": 6,
+      "date": "2026-06-03",
+      "location": "Pickup Wednesday",
+      "a_score": 11,
+      "b_score": 5,
+      "winner": "A",
+      "team_a_name": "Inarizaki",
+      "team_b_name": "Fukurodani",
+      "teamA": [
+        12,
+        10,
+        15,
+        8,
+        13,
+        14,
+        9
+      ],
+      "teamB": [
+        29,
+        26,
+        27,
+        31,
+        23,
+        28,
+        3,
+        24
+      ]
+    },
+    {
+      "match_id": 7,
+      "date": "2026-06-10",
+      "location": "Pickup Wednesday",
+      "a_score": 7,
+      "b_score": 11,
+      "winner": "B",
+      "team_a_name": "Uno",
+      "team_b_name": "Tres",
+      "teamA": [
+        35,
+        2,
+        25,
+        36,
+        31,
+        46,
+        17
+      ],
+      "teamB": [
+        4,
+        3,
+        42,
+        21,
+        41,
+        40,
+        22
+      ]
+    },
+    {
+      "match_id": 8,
+      "date": "2026-06-10",
+      "location": "Pickup Wednesday",
+      "a_score": 7,
+      "b_score": 6,
+      "winner": "A",
+      "team_a_name": "Dos",
+      "team_b_name": "Cuatro",
+      "teamA": [
+        19,
+        38,
+        39,
+        28,
+        37,
+        18,
+        6
+      ],
+      "teamB": [
+        9,
+        8,
+        43,
+        10,
+        44,
+        45,
+        20
+      ]
+    },
+    {
+      "match_id": 9,
+      "date": "2026-06-10",
+      "location": "Pickup Wednesday",
+      "a_score": 10,
+      "b_score": 9,
+      "winner": "A",
+      "team_a_name": "Uno",
+      "team_b_name": "Dos",
+      "teamA": [
+        25,
+        36,
+        31,
+        17,
+        46,
+        35,
+        2
+      ],
+      "teamB": [
+        39,
+        28,
+        37,
+        18,
+        6,
+        19,
+        38
+      ]
+    },
+    {
+      "match_id": 10,
+      "date": "2026-06-10",
+      "location": "Pickup Wednesday",
+      "a_score": 5,
+      "b_score": 12,
+      "winner": "B",
+      "team_a_name": "Tres",
+      "team_b_name": "Cuatro",
+      "teamA": [
+        40,
+        22,
+        4,
+        3,
+        42,
+        21,
+        41
+      ],
+      "teamB": [
+        45,
+        9,
+        20,
+        8,
+        43,
+        10,
+        44
+      ]
+    },
+    {
+      "match_id": 11,
+      "date": "2026-06-10",
+      "location": "Pickup Wednesday",
+      "a_score": 6,
+      "b_score": 14,
+      "winner": "B",
+      "team_a_name": "Uno",
+      "team_b_name": "Cuatro",
+      "teamA": [
+        35,
+        2,
+        25,
+        36,
+        31,
+        17,
+        46
+      ],
+      "teamB": [
+        20,
+        8,
+        43,
+        10,
+        44,
+        45,
+        9
+      ]
+    },
+    {
+      "match_id": 12,
+      "date": "2026-06-10",
+      "location": "Pickup Wednesday",
+      "a_score": 6,
+      "b_score": 5,
+      "winner": "A",
+      "team_a_name": "Dos",
+      "team_b_name": "Tres",
+      "teamA": [
+        19,
+        38,
+        39,
+        28,
+        37,
+        18,
+        6
+      ],
+      "teamB": [
+        4,
+        3,
+        40,
+        22,
+        42,
+        21,
+        41
+      ]
+    }
+  ]
+}

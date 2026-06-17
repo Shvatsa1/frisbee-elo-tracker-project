@@ -43,6 +43,7 @@ import {
   getPublicEvent,
   getAdminRoster,
   selfSignupForEvent,
+  joinContext,
 } from './eventService.js';
 import {
   validateCard,
@@ -1099,6 +1100,44 @@ export function createApp() {
         context_id: result.context_id,
         rating_token: result.person.rating_token,
         registration: result.registration,
+        created_person: result.created_person,
+      });
+    } catch (err) { return fail(res, err); }
+  });
+
+  // POST /api/join — website self-signup for a brand-new player (no event link
+  // and no admin-minted magic link). Creates/resolves the person, makes them a
+  // player in the context, and logs them straight in. Public (no auth). Same
+  // name-conflict guard as event self-signup (409 name_conflict → confirm_new).
+  app.post('/api/join', async (req, res) => {
+    const context_id = parseInt(req.body?.context_id, 10);
+    if (!Number.isFinite(context_id)) {
+      return res.status(400).json({ error: 'context_id required' });
+    }
+    try {
+      const result = await joinContext({
+        context_id,
+        name: req.body?.name,
+        phone: req.body?.phone,
+        confirm_new: !!req.body?.confirm_new,
+      });
+      if (!result.ok) {
+        const body = { error: result.error };
+        if (result.existing_name) body.existing_name = result.existing_name;
+        if (result.hint) body.hint = result.hint;
+        return res.status(result.status).json(body);
+      }
+      const session = mintSessionForPerson({
+        person_id: result.person.person_id,
+        name: result.person.name,
+        context_id: result.context_id,
+      });
+      res.status(201).json({
+        session_id: session.session_id,
+        person_id: result.person.person_id,
+        name: result.person.name,
+        context_id: result.context_id,
+        rating_token: result.person.rating_token,
         created_person: result.created_person,
       });
     } catch (err) { return fail(res, err); }
