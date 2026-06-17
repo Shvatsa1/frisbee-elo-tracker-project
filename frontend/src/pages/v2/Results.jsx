@@ -225,7 +225,7 @@ export default function Results() {
               : <Link to="/v2/join" className="btn-secondary flex items-center"><UserPlus className="w-4 h-4 mr-2" /> Join In</Link>}
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mt-8 max-w-md">
+          <div className="grid grid-cols-3 gap-4 md:gap-6 mt-8">
             <StatCard icon={Users} value={board.length || '—'} label="Players" />
             <StatCard icon={CalendarDays} value={weeks.length || '—'} label="Sessions" />
             <StatCard icon={Activity} value={totalGames || '—'} label="Games" accent />

@@ -111,16 +111,20 @@ export default function MyCard() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Your card · {me.person.name}
-        </h1>
-        <p className="text-slate-400 text-sm">
-          Rate yourself on six attributes. Five levels, no half-points.
-          We’ll work out your blended offence/defence so the team-builder
-          can use it.
-        </p>
-      </header>
+      {/* Hero header — matches the /v2/results landing's visual language */}
+      <div className="glass-panel relative overflow-hidden p-6 md:p-8">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1598024220557-93ba2a488e02?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-10 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#131C31] via-[#131C31]/80 to-transparent" />
+        <div className="relative z-10">
+          <div className="text-xs uppercase tracking-widest text-primary font-bold mb-1">Your player card</div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none">{me.person.name}</h1>
+          <p className="text-slate-400 text-sm mt-3 max-w-lg">
+            Rate yourself on six attributes. Five levels, no half-points.
+            We’ll work out your blended offence/defence so the team-builder
+            can use it.
+          </p>
+        </div>
+      </div>
 
       <section className="glass-panel p-5 space-y-4">
         <h2 className="text-lg font-semibold">Style</h2>
