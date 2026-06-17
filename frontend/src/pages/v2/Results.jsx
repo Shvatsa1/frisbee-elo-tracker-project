@@ -35,6 +35,7 @@ function TeamColumn({ name, score, players, won }) {
 
 export default function Results() {
   const [ctxId, setCtxId] = useState(getContextId());
+  const [selDate, setSelDate] = useState(null);   // null = latest session
   const [data, setData] = useState(null);
   const [openEvent, setOpenEvent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,24 +52,52 @@ export default function Results() {
   useEffect(() => {
     if (!ctxId) return;
     setLoading(true); setErr('');
-    v2.matches(ctxId)
+    v2.matches(ctxId, selDate)
       .then(setData)
       .catch(e => setErr(e?.response?.data?.error || e.message))
       .finally(() => setLoading(false));
+  }, [ctxId, selDate]);
+
+  // The "up next" banner doesn't depend on the chosen week.
+  useEffect(() => {
+    if (!ctxId) return;
     v2.openEvent(ctxId)
       .then(r => setOpenEvent(r.event))
       .catch(() => setOpenEvent(null));
   }, [ctxId]);
 
   const matches = data?.matches ?? [];
+  const weeks = data?.weeks ?? [];
+  const selected = data?.selected_date ?? null;
+  const isLatest = selected && weeks.length > 0 && selected === weeks[0].date;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Last Week</h1>
-        <p className="text-slate-400">
-          {data?.latest_date ? `Most recent session — ${fmtDate(data.latest_date)}` : 'Recent results'}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{isLatest ? 'Last Week' : 'Results'}</h1>
+          <p className="text-slate-400">
+            {selected
+              ? `${isLatest ? 'Most recent session' : 'Session'} — ${fmtDate(selected)}`
+              : 'Recent results'}
+          </p>
+        </div>
+        {weeks.length > 1 && (
+          <label className="text-sm text-slate-400">
+            <span className="mr-2">Week</span>
+            <select
+              value={selected ?? ''}
+              onChange={e => setSelDate(e.target.value)}
+              className="input-field py-1.5 px-2 text-sm"
+            >
+              {weeks.map(w => (
+                <option key={w.date} value={w.date}>
+                  {fmtDate(w.date)} ({w.n})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {openEvent && (

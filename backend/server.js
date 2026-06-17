@@ -928,25 +928,49 @@ export function createApp() {
     } catch (err) { return fail(res, err); }
   });
 
-  // GET /api/matches?context_id=&limit= — recent confirmed matches (newest
-  // first) with per-team rosters. Public. Powers the player "Last Week" view.
+  // GET /api/matches?context_id=&date= — confirmed matches for ONE session
+  // (one match_date), newest first, with per-team rosters. Public. Powers the
+  // player "Last Week" view, which is split by week. Results are stored date-wise
+  // (match.match_date), so each distinct date = one "week".
+  //   - `weeks`: every distinct session date (newest first) + match count, for
+  //     the week picker.
+  //   - `date` (optional, YYYY-MM-DD): which session to return. Defaults to the
+  //     latest. Ignored if it isn't a real session date.
   app.get('/api/matches', async (req, res) => {
     const context_id = parseInt(req.query.context_id, 10);
-    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 200, 500);
     if (!Number.isFinite(context_id)) {
       return res.status(400).json({ error: 'context_id required' });
     }
     try {
+      // Distinct session dates = the selectable "weeks".
+      const weeks = (await pool.query(`
+        SELECT to_char(match_date, 'YYYY-MM-DD') AS date, count(*)::int AS n
+          FROM match
+         WHERE context_id = $1 AND status = 'confirmed'
+         GROUP BY match_date
+         ORDER BY match_date DESC`, [context_id])).rows;
+
+      if (weeks.length === 0) {
+        return res.json({ matches: [], latest_date: null, selected_date: null, weeks: [] });
+      }
+
+      const weekDates = weeks.map(w => w.date);
+      const requested = req.query.date;
+      const selected = requested && weekDates.includes(requested) ? requested : weekDates[0];
+
       const matches = (await pool.query(`
-        SELECT match_id, context_id, match_date, location,
+        SELECT match_id, context_id, to_char(match_date, 'YYYY-MM-DD') AS match_date, location,
                team_a_name, team_b_name, team_a_score, team_b_score,
                winning_team, team_a_avg_elo, team_b_avg_elo, status, created_at
           FROM match
-         WHERE context_id = $1 AND status = 'confirmed'
-         ORDER BY match_date DESC, created_at DESC
-         LIMIT $2`, [context_id, limit])).rows;
+         WHERE context_id = $1 AND status = 'confirmed' AND match_date = $2::date
+         ORDER BY created_at DESC
+         LIMIT $3`, [context_id, selected, limit])).rows;
 
-      if (matches.length === 0) return res.json({ matches: [], latest_date: null });
+      if (matches.length === 0) {
+        return res.json({ matches: [], latest_date: weekDates[0], selected_date: selected, weeks });
+      }
 
       const ids = matches.map(m => m.match_id);
       const players = (await pool.query(`
@@ -967,7 +991,9 @@ export function createApp() {
       }
       res.json({
         matches: matches.map(m => byMatch.get(m.match_id)),
-        latest_date: matches[0].match_date,
+        latest_date: weekDates[0],
+        selected_date: selected,
+        weeks,
       });
     } catch (err) { return fail(res, err); }
   });

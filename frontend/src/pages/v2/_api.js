@@ -143,7 +143,7 @@ export const v2 = {
   // public reads
   listContexts:   ()          => api.get('/contexts').then(r => r.data),
   leaderboard:    (ctxId)     => api.get(`/leaderboard?context_id=${ctxId}`).then(r => r.data),
-  matches:        (ctxId)     => api.get(`/matches?context_id=${ctxId}`).then(r => r.data),
+  matches:        (ctxId, date) => api.get(`/matches?context_id=${ctxId}${date ? `&date=${date}` : ''}`).then(r => r.data),
   playerProfile:  (personId)  => api.get(`/player/${personId}`).then(r => r.data),
   match:          (matchId)   => api.get(`/match/${matchId}`).then(r => r.data),
   build:          (buildId)   => api.get(`/build/${buildId}`).then(r => r.data),
